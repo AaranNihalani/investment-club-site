@@ -1,0 +1,142 @@
+[
+  {
+    "name": "Lockheed Martin Corporation",
+    "ticker": "LMT",
+    "shares": 6,
+    "exchange": "XNYS",
+    "defaultPrice": 352.79
+  },
+  {
+    "name": "Alphabet Inc.",
+    "ticker": "GOOG",
+    "shares": 37,
+    "exchange": "XNAS",
+    "defaultPrice": 187.99
+  },
+  {
+    "name": "MSCI Eu ITScrnd UCITS ETF 1C",
+    "ticker": "XS8R",
+    "shares": 22,
+    "exchange": "XFRA",
+    "defaultPrice": 92.79
+  },
+  {
+    "name": "Invesco S&P Gl Wtr",
+    "ticker": "CGW",
+    "shares": 83,
+    "exchange": "ARCX",
+    "defaultPrice": 47.45
+  },
+  {
+    "name": "Berkshire Hathaway Inc.",
+    "ticker": "BRK.B",
+    "shares": 13,
+    "exchange": "XNYS",
+    "defaultPrice": 365.06
+  },
+  {
+    "name": "Novo Nordisk A/S",
+    "ticker": "NVO",
+    "shares": 26,
+    "exchange": "XNYS",
+    "defaultPrice": 46.07
+  },
+  {
+    "name": "London Stock Exchange Group PLC",
+    "ticker": "LSEG",
+    "shares": 37,
+    "exchange": "XLON",
+    "defaultPrice": 86.36
+  },
+  {
+    "name": "Siemens AG",
+    "ticker": "SIE",
+    "shares": 19,
+    "exchange": "XFRA",
+    "defaultPrice": 193.51
+  },
+  {
+    "name": "Ipsen SA",
+    "ticker": "IPN",
+    "shares": 11,
+    "exchange": "XPAR",
+    "defaultPrice": 97.07
+  },
+  {
+    "name": "L3Harris Technologies, Inc.",
+    "ticker": "LHX",
+    "shares": 13,
+    "exchange": "XNYS",
+    "defaultPrice": 210.51
+  },
+  {
+    "name": "Leidos Holdings, Inc.",
+    "ticker": "LDOS",
+    "shares": 25,
+    "exchange": "XNYS",
+    "defaultPrice": 139.39
+  },
+  {
+    "name": "IQVIA Holdings Inc",
+    "ticker": "IQV",
+    "shares": 10,
+    "exchange": "XNAS",
+    "defaultPrice": 14.6
+  },
+  {
+    "name": "Eli Lilly and Company",
+    "ticker": "LLY",
+    "shares": 2,
+    "exchange": "XNYS",
+    "defaultPrice": 568.11
+  },
+  {
+    "name": "Mitie Group PLC",
+    "ticker": "MTO",
+    "shares": 800,
+    "exchange": "XLON",
+    "defaultPrice": 1.41
+  },
+  {
+    "name": "NVIDIA Corporation",
+    "ticker": "NVDA",
+    "shares": 14,
+    "exchange": "XNAS",
+    "defaultPrice": 131.26
+  },
+  {
+    "name": "Freeport-McMoRan Inc.",
+    "ticker": "FCX",
+    "shares": 50,
+    "exchange": "XNYS",
+    "defaultPrice": 33.46
+  },
+  {
+    "name": "Talanx AG",
+    "ticker": "TLX",
+    "shares": 12,
+    "exchange": "XETR",
+    "defaultPrice": 95.12
+  },
+  {
+    "name": "The Procter & Gamble Company",
+    "ticker": "PG",
+    "shares": 11,
+    "exchange": "XNYS",
+    "defaultPrice": 128.13
+  },
+  {
+    "name": "Upwork Inc.",
+    "ticker": "UPWK",
+    "shares": 50,
+    "exchange": "XNAS",
+    "defaultPrice": 12.14
+  },
+  {
+    "name": "Cash / Other",
+    "ticker": "CASH",
+    "shares": 1747,
+    "exchange": "",
+    "defaultPrice": 1
+  }
+]

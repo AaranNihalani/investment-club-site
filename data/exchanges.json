@@ -1,0 +1,10 @@
+[
+  { "code": "XNAS", "name": "NASDAQ", "suffix": "", "currency": "USD" },
+  { "code": "XNYS", "name": "NYSE", "suffix": "", "currency": "USD" },
+  { "code": "XASE", "name": "NYSE American", "suffix": "", "currency": "USD" },
+  { "code": "ARCX", "name": "NYSE Arca", "suffix": "", "currency": "USD" },
+  { "code": "XLON", "name": "London Stock Exchange", "suffix": ".L", "currency": "GBX" },
+  { "code": "XETR", "name": "XETRA (Germany)", "suffix": ".DE", "currency": "EUR" },
+  { "code": "XFRA", "name": "Frankfurt (Germany)", "suffix": ".DE", "currency": "EUR" },
+  { "code": "XPAR", "name": "Euronext Paris", "suffix": ".PA", "currency": "EUR" }
+]

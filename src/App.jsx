@@ -1,0 +1,1053 @@
+import { useEffect, useState, useRef } from 'react'
+// eslint-disable-next-line no-unused-vars
+import { motion } from 'framer-motion'
+import './index.css'
+
+// Base URL for backend API, configurable via Vite env
+const API_BASE = import.meta.env.VITE_API_BASE || ''
+
+function App() {
+  const [page, setPage] = useState('about')
+  const [reportsList, setReportsList] = useState([])
+  const [adminToken, setAdminToken] = useState(localStorage.getItem('ADMIN_TOKEN') || import.meta.env.VITE_ADMIN_TOKEN || '')
+  const [adminOpen, setAdminOpen] = useState(false)
+  const [adminAuthed, setAdminAuthed] = useState(localStorage.getItem('ADMIN_AUTH') === 'true')
+  const [showPassword, setShowPassword] = useState(false)
+  const [adminTab, setAdminTab] = useState('news')
+  const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState('')
+
+  // Holdings for portfolio editor (name, ticker, shares, value)
+  const [holdings, setHoldings] = useState([])
+  const [calcHoldings, setCalcHoldings] = useState([])
+  const [offlineMode, setOfflineMode] = useState(false)
+  // Fallback mapping when API calc fails
+  const makeFallbackCalc = (base) => base.map(h => {
+  const t = String(h.ticker || '').toUpperCase().trim();
+  if (t === 'CASH') {
+    const cashVal = Number(h.shares) || 0; // your app stores cash amount in `shares`
+    return {
+      name: h.name,
+      ticker: t,
+      shares: 0,
+      value: Math.round(cashVal),
+      weight: 0,
+      pricePerShare: 1
+    };
+  }
+  return {
+    name: h.name,
+    ticker: t,
+    shares: Number(h.shares) || 0,
+    value: null,
+    weight: 0,
+    pricePerShare: null,
+  };
+});
+
+  // Preserve last known values/prices while waiting for API recalculation
+  const mergeCalcHoldings = (base, prev) => {
+    const prevMap = new Map((prev || []).map(h => [String(h.ticker || '').toUpperCase().trim(), h]))
+    return (base || []).map(b => {
+      const t = String(b.ticker || '').toUpperCase().trim()
+      if (t === 'CASH') {
+        const cashVal = Math.round(Number(b.shares) || 0)
+        return {
+          name: b.name,
+          ticker: t,
+          shares: 0,
+          value: cashVal,
+          weight: 0,
+          pricePerShare: 1,
+        }
+      }
+      const ph = prevMap.get(t) || {}
+      return {
+        name: b.name,
+        ticker: t,
+        shares: Math.round(Number(b.shares) || 0),
+        value: typeof ph.value === 'number' ? ph.value : null,
+        weight: 0,
+        pricePerShare: typeof ph.pricePerShare === 'number' ? ph.pricePerShare : null,
+      }
+    })
+  }
+
+  // Merge incoming calc results, only overwrite when new value/price is non-null
+  const mergeNonNullCalc = (incoming, prev) => {
+    const prevMap = new Map((prev || []).map(h => [String(h.ticker || '').toUpperCase().trim(), h]))
+    const merged = (incoming || []).map(h => {
+      const t = String(h.ticker || '').toUpperCase().trim()
+      const ph = prevMap.get(t) || {}
+      const value = (typeof h.value === 'number') ? h.value : (typeof ph.value === 'number' ? ph.value : null)
+      const pricePerShare = (typeof h.pricePerShare === 'number') ? h.pricePerShare : (typeof ph.pricePerShare === 'number' ? ph.pricePerShare : null)
+      return {
+        name: h.name,
+        ticker: t,
+        shares: Math.round(Number(h.shares) || 0),
+        value,
+        pricePerShare,
+        weight: 0,
+      }
+    })
+    const total = merged.reduce((acc, it) => acc + (typeof it.value === 'number' ? it.value : 0), 0)
+    return merged.map(it => ({
+      ...it,
+      weight: total > 0 && typeof it.value === 'number' ? Math.round((it.value / total) * 1000) / 10 : 0,
+    }))
+  }
+
+  // New: compute effective holdings using defaultPrice fallback (and CASH logic)
+  const computeEffectiveHoldings = (base, calc) => {
+    const baseMap = new Map((base || []).map(b => [String(b.ticker || '').toUpperCase().trim(), b]))
+    return (calc || []).map(h => {
+      const t = String(h.ticker || '').toUpperCase().trim()
+      const b = baseMap.get(t) || {}
+      const isCash = t === 'CASH' || String(h.name || '').toLowerCase().includes('cash')
+      let pricePerShare = typeof h.pricePerShare === 'number' ? h.pricePerShare : (typeof b.defaultPrice === 'number' ? b.defaultPrice : null)
+      let value = typeof h.value === 'number' ? h.value : null
+      if (isCash) {
+        pricePerShare = 1
+        value = Math.round(Number(b.shares) || 0)
+      } else if (value == null && typeof pricePerShare === 'number') {
+        value = Math.round((pricePerShare * (Number(h.shares) || 0)))
+      }
+      return {
+        name: h.name,
+        ticker: t,
+        shares: Math.round(Number(h.shares) || 0),
+        pricePerShare,
+        value,
+      }
+    })
+  }
+
+  const [newHolding, setNewHolding] = useState({ name: '', ticker: '', shares: 0, exchange: '', defaultPrice: '' })
+  const [editIndex, setEditIndex] = useState(null)
+  const [editType, setEditType] = useState(null) // 'shares' | 'cash'
+  const [editInput, setEditInput] = useState('')
+const [exchanges, setExchanges] = useState([])
+useEffect(() => {
+  let cancelled = false
+  ;(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/exchanges`)
+      const data = await parseJsonResponse(res)
+      if (!cancelled && Array.isArray(data.exchanges)) setExchanges(data.exchanges)
+    } catch (err) {
+      console.warn('Failed to load exchanges', err)
+    }
+  })()
+  return () => { cancelled = true }
+}, [])
+
+  const formatCurrency = (n) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(n)
+  const formatPrice = (n) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+
+  // Derived display state driven by calcHoldings with defaultPrice fallback
+  const effectiveHoldings = computeEffectiveHoldings(holdings, calcHoldings)
+  const totalValue = effectiveHoldings.reduce((acc, h) => acc + (typeof h.value === 'number' ? Number(h.value) : 0), 0)
+
+  // Robust JSON parsing helper
+  async function parseJsonResponse(res) {
+    let text = ''
+    try {
+      text = await res.text()
+    } catch (err) {
+      console.warn('Failed to read response text', err)
+      return {}
+    }
+    if (!text) return {}
+    try {
+      return JSON.parse(text)
+    } catch (err) {
+      console.warn('Response is not valid JSON', err)
+      return {}
+    }
+  }
+
+  // New: expose loadHoldings for AdminDefaultsButton onDone and for initial mount
+  async function loadHoldings() {
+    try {
+      const res = await fetch(`${API_BASE}/api/holdings`)
+      const data = await parseJsonResponse(res)
+      const base = Array.isArray(data.holdings) ? data.holdings : []
+      setHoldings(base)
+      setCalcHoldings(prev => mergeCalcHoldings(base, prev))
+    } catch (err) {
+      console.warn('Load persisted holdings failed:', err)
+    }
+  }
+  async function persistHoldings(base) {
+    try {
+      if (!adminAuthed || !adminToken) {
+        alert('Sign in as admin to persist portfolio changes. Your local changes will not be saved to the backend until you are authenticated.')
+        return false
+      }
+      const cleaned = base.map(h => ({
+        name: String(h.name || '').trim(),
+        ticker: String(h.ticker || '').toUpperCase().trim(),
+        shares: Math.max(0, Math.round(Number(h.shares) || 0)),
+        exchange: String(h.exchange || '').toUpperCase().trim(),
+        defaultPrice: (typeof h.defaultPrice === 'number' ? h.defaultPrice : undefined),
+      }))
+      const res = await fetch(`${API_BASE}/api/holdings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': (adminToken || '').trim() },
+        body: JSON.stringify({ holdings: cleaned }),
+      })
+      const data = await parseJsonResponse(res)
+      if (!res.ok) {
+        console.warn('Persist holdings failed with status', res.status, data)
+        alert(data?.message || 'Persist holdings failed')
+        return false
+      }
+      // Reload persisted holdings to confirm backend sync
+      await loadHoldings()
+      return true
+    } catch (err) {
+      console.warn('Persist holdings failed', err)
+      alert('Persist holdings failed — please check that the backend is running and your admin token is correct.')
+      return false
+    }
+  }
+
+  // Persist news items (admin only)
+  async function persistNews(items) {
+    try {
+      if (!adminAuthed || !adminToken) throw new Error('Admin not authenticated')
+      const cleaned = items.map(n => ({
+        title: String(n.title || '').trim().slice(0, 200),
+        date: String(n.date || '').trim().slice(0, 100),
+        body: String(n.body || '').trim().slice(0, 2000),
+      })).filter(n => n.title && n.body)
+      const res = await fetch(`${API_BASE}/api/news`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': (adminToken || '').trim() },
+        body: JSON.stringify({ news: cleaned }),
+      })
+      const data = await parseJsonResponse(res)
+      if (!res.ok) {
+        console.warn('Persist news failed with status', res.status, data)
+        return false
+      }
+      return true
+    } catch (err) {
+      console.warn('Persist news failed', err)
+      return false
+    }
+  }
+
+  const [news, setNews] = useState([])
+
+  // Load news from backend on mount
+  useEffect(() => {
+    let cancelled = false
+    async function loadNews() {
+      try {
+        const res = await fetch(`${API_BASE}/api/news`)
+        if (!res.ok) throw new Error('Failed to load news')
+        const data = await parseJsonResponse(res)
+        const items = Array.isArray(data.news) ? data.news : []
+        if (cancelled) return
+        setNews(items)
+      } catch (err) {
+        console.warn('Load news failed:', err)
+      }
+    }
+    loadNews()
+    return () => { cancelled = true }
+  }, [])
+
+  // Research members input is now captured via a single textarea in the Admin Reports form
+
+  // Placeholder exampleReports removed; only uploaded reports will be shown
+  useEffect(() => {
+    let attempts = 0
+    async function loadReports() {
+      try {
+        const res = await fetch(`${API_BASE}/api/reports`)
+        if (!res.ok) throw new Error('Failed to load reports')
+        const data = await parseJsonResponse(res)
+        setReportsList(data.reports || [])
+      } catch {
+        attempts += 1
+        if (attempts <= 5) {
+          setTimeout(loadReports, 2000)
+        } else {
+          setReportsList([])
+        }
+      }
+    }
+    loadReports()
+  }, [])
+
+  async function handleAdminLogin(e) {
+    e.preventDefault()
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/verify`, {
+        headers: { 'x-admin-token': (adminToken || '').trim() },
+      })
+      if (!res.ok) throw new Error('Invalid token')
+      const data = await parseJsonResponse(res)
+      if (data?.ok) {
+        setAdminAuthed(true)
+        localStorage.setItem('ADMIN_AUTH', 'true')
+        localStorage.setItem('ADMIN_TOKEN', (adminToken || '').trim())
+      } else {
+        throw new Error('Invalid token')
+      }
+    } catch (err) {
+      alert(err.message || 'Authentication failed')
+      setAdminAuthed(false)
+      localStorage.removeItem('ADMIN_AUTH')
+    }
+  }
+
+  async function handleAdminUpload(e) {
+    e.preventDefault()
+    setUploadMessage('')
+    if (!adminAuthed || !adminToken) {
+      setUploadMessage('Please sign in as admin before uploading.')
+      return
+    }
+    const formEl = e.currentTarget
+    const file = formEl.reportFile?.files?.[0]
+    const stockName = formEl.stockName?.value?.trim()
+    const reportType = formEl.reportType?.value?.trim().toLowerCase()
+    const description = formEl.description?.value?.trim()
+    const membersText = formEl.researchMembersText?.value || ''
+    const members = membersText.split('\n').map(s => s.trim()).filter(Boolean).join(',')
+    const allowedTypes = ['trim','buy','sell']
+    if (!file || !stockName || !description || !members || !allowedTypes.includes(reportType)) {
+      setUploadMessage('Please complete all required fields and choose a valid report type.')
+      return
+    }
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append('report', file)
+      form.append('reportName', stockName)
+      form.append('stockTicker', (formEl.stockTicker?.value || '').toUpperCase().trim())
+      form.append('reportType', reportType)
+      form.append('researchMembers', members)
+      form.append('description', description)
+      const res = await fetch(`${API_BASE}/api/reports/upload`, {
+        method: 'POST',
+        headers: { 'x-admin-token': (adminToken || '').trim() },
+        mode: 'cors',
+        body: form,
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || 'Upload failed')
+      }
+      setUploadMessage('Upload successful!')
+      formEl.reset()
+      const listRes = await fetch(`${API_BASE}/api/reports`)
+      const listData = await parseJsonResponse(listRes)
+      setReportsList(listData.reports || [])
+    } catch (error) {
+      setUploadMessage(error?.message === 'Failed to fetch' || error?.name === 'TypeError' ? `Network error: ensure the backend server is running on ${API_BASE} and CORS is allowed.` : (error.message || 'Upload failed'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleDeleteReport(filename) {
+    if (!adminAuthed) return alert('Sign in as admin to remove reports.')
+    if (!confirm('Remove this report?')) return
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/${encodeURIComponent(filename)}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-token': (adminToken || '').trim() },
+      })
+      if (!res.ok) throw new Error('Failed to remove report')
+      const listRes = await fetch(`${API_BASE}/api/reports`)
+      const listData = await parseJsonResponse(listRes)
+      setReportsList(listData.reports || [])
+    } catch (err) {
+      alert(err.message || 'Remove failed')
+    }
+  }
+
+  async function addNews(e) {
+    e.preventDefault()
+    if (!adminAuthed || !adminToken) {
+      alert('Sign in as admin to add news.')
+      return
+    }
+    const formEl = e.currentTarget
+    const t = formEl.elements.namedItem('newsTitle')?.value?.trim()
+    const d = formEl.elements.namedItem('newsDate')?.value?.trim()
+    const b = formEl.elements.namedItem('newsBody')?.value?.trim()
+    if (!t || !b) return
+    const item = { title: t, date: d || '', body: b }
+    const prev = news
+    const next = [item, ...news]
+    setNews(next)
+    const ok = await persistNews(next)
+    if (ok) {
+      try {
+        const res = await fetch(`${API_BASE}/api/news`)
+        const data = await parseJsonResponse(res)
+        const items = Array.isArray(data.news) ? data.news : next
+        setNews(items)
+      } catch (err) {
+        console.warn('Reload news after persist failed:', err)
+      }
+      formEl?.reset()
+    } else {
+      setNews(prev)
+      alert('Failed to persist news. Please check your admin token and try again.')
+    }
+  }
+
+  async function addHolding(e) {
+    e.preventDefault()
+    // Update addHolding usage
+    const prevBase = holdings
+    const { name, ticker, shares, exchange, defaultPrice } = newHolding
+    const dp = parseFloat(defaultPrice)
+    const nextBase = [
+      { name, ticker: ticker.toUpperCase().trim(), shares: Math.round(Number(shares)), exchange: String(exchange || '').toUpperCase().trim(), defaultPrice: (Number.isFinite(dp) ? dp : undefined) },
+      ...holdings.map(h => ({ name: h.name, ticker: String(h.ticker || '').toUpperCase().trim(), shares: Number(h.shares) || 0, exchange: String(h.exchange || '').toUpperCase().trim(), defaultPrice: (typeof h.defaultPrice === 'number' ? h.defaultPrice : undefined) }))
+    ]
+    // Optimistic update
+    setHoldings(nextBase)
+    setCalcHoldings(prev => mergeCalcHoldings(nextBase, prev))
+    try {
+      const res = await fetch(`${API_BASE}/api/holdings/calc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ holdings: nextBase })
+      })
+      if (!res.ok) throw new Error(`Calculation failed (${res.status})`)
+      const data = await parseJsonResponse(res)
+      if (!data || !data.ok || !Array.isArray(data.holdings)) throw new Error(data?.error || 'Calculation failed')
+      setCalcHoldings(prev => mergeNonNullCalc(data.holdings, prev))
+      setOfflineMode(false)
+      setNewHolding({ name: '', ticker: '', shares: 0, exchange: '', defaultPrice: '' })
+      // persist holdings after successful calc
+      const ok = await persistHoldings(nextBase)
+      if (!ok) {
+        // revert
+        setHoldings(prevBase)
+        setCalcHoldings(prev => mergeCalcHoldings(prevBase, prev))
+      }
+    } catch (err) {
+      console.warn('Add holding calc failed:', err)
+      setOfflineMode(true)
+      alert(err?.message || 'Add holding failed — using offline fallback')
+      setNewHolding({ name: '', ticker: '', shares: 0, exchange: '', defaultPrice: '' })
+    }
+  }
+
+  const holdingsRef = useRef(holdings)
+  useEffect(() => { holdingsRef.current = holdings }, [holdings])
+
+  useEffect(() => {
+    const recalc = async () => {
+      const current = holdingsRef.current || []
+      if (!current.length) { setOfflineMode(false); return }
+      try {
+        const payload = { holdings: current.map(h => ({ name: h.name, ticker: String(h.ticker || '').toUpperCase().trim(), shares: Number(h.shares) || 0, exchange: String(h.exchange || '').toUpperCase().trim(), defaultPrice: (typeof h.defaultPrice === 'number' ? h.defaultPrice : undefined) })) }
+        const res = await fetch(`${API_BASE}/api/holdings/calc`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) throw new Error(`Calculation failed (${res.status})`)
+        const data = await parseJsonResponse(res)
+        if (data && data.ok && Array.isArray(data.holdings)) {
+          setCalcHoldings(prev => mergeNonNullCalc(data.holdings, prev))
+          setOfflineMode(false)
+        } else {
+          throw new Error('Invalid calc response')
+        }
+      } catch (err) {
+        console.warn('Periodic recalculation failed:', err)
+        setCalcHoldings(prev => mergeCalcHoldings(current, prev))
+        setOfflineMode(true)
+      }
+    }
+    recalc()
+    const id = setInterval(recalc, 5000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Load persisted holdings on mount
+  useEffect(() => {
+    loadHoldings()
+  }, [])
+
+  function editHoldingShares(index) {
+    const current = holdings[index]
+    setEditIndex(index)
+    setEditType('shares')
+    setEditInput(String(current.shares || 0))
+  }
+
+  function editCashAmount(index) {
+    const current = holdings[index]
+    setEditIndex(index)
+    setEditType('cash')
+    setEditInput(String(current.shares || 0))
+  }
+
+  function cancelEdit() {
+    setEditIndex(null)
+    setEditType(null)
+    setEditInput('')
+  }
+
+  async function saveEdit() {
+    if (editIndex === null || !editType) return
+    const val = Number(editInput)
+    if (!Number.isFinite(val) || val < 0) return
+    const prevHoldings = holdings
+    const next = holdings.map((h, i) => {
+      if (i !== editIndex) return h
+      if (editType === 'cash') return { ...h, shares: Math.round(val) }
+      return { ...h, shares: Math.round(val) }
+    })
+    // Optimistic update
+    setHoldings(next)
+    setCalcHoldings(prev => mergeCalcHoldings(next, prev))
+    try {
+      const res = await fetch(`${API_BASE}/api/holdings/calc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ holdings: next.map(h => ({ name: h.name, ticker: String(h.ticker || '').toUpperCase().trim(), shares: Number(h.shares) || 0, exchange: String(h.exchange || '').toUpperCase().trim(), defaultPrice: (typeof h.defaultPrice === 'number' ? h.defaultPrice : undefined) })) })
+      })
+      if (!res.ok) throw new Error(`Calculation failed (${res.status})`)
+      const data = await parseJsonResponse(res)
+      if (!data || !data.ok || !Array.isArray(data.holdings)) throw new Error(data?.error || 'Calculation failed')
+      setCalcHoldings(prev => mergeNonNullCalc(data.holdings, prev))
+      setOfflineMode(false)
+      cancelEdit()
+      // persist holdings after successful calc
+      const ok = await persistHoldings(next)
+      if (!ok) {
+        // revert
+        setHoldings(prevHoldings)
+        setCalcHoldings(prev => mergeCalcHoldings(prevHoldings, prev))
+      }
+    } catch (err) {
+      console.warn('Edit holding calc failed:', err)
+      setOfflineMode(true)
+      alert(err?.message || 'Edit failed — using offline fallback')
+    }
+  }
+
+  async function removeHolding(i) {
+    const prevHoldings = holdings.slice()
+    const next = holdings.slice()
+    next.splice(i, 1)
+    // Optimistic update
+    setHoldings(next)
+    setCalcHoldings(prev => mergeCalcHoldings(next, prev))
+    try {
+      const res = await fetch(`${API_BASE}/api/holdings/calc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ holdings: next.map(h => ({ name: h.name, ticker: String(h.ticker || '').toUpperCase().trim(), shares: Number(h.shares) || 0, exchange: String(h.exchange || '').toUpperCase().trim(), defaultPrice: (typeof h.defaultPrice === 'number' ? h.defaultPrice : undefined) })) })
+      })
+      if (!res.ok) throw new Error(`Calculation failed (${res.status})`)
+      const data = await parseJsonResponse(res)
+      if (!data || !data.ok || !Array.isArray(data.holdings)) throw new Error(data?.error || 'Calculation failed')
+      setCalcHoldings(prev => mergeNonNullCalc(data.holdings, prev))
+      setOfflineMode(false)
+      // persist holdings after successful calc
+      const ok = await persistHoldings(next)
+      if (!ok) {
+        // revert
+        setHoldings(prevHoldings)
+        setCalcHoldings(prev => mergeCalcHoldings(prevHoldings, prev))
+      }
+    } catch (err) {
+      console.warn('Remove holding calc failed:', err)
+      setOfflineMode(true)
+      alert(err?.message || 'Remove failed — using offline fallback')
+    }
+  }
+
+  // Update admin portfolio form to remove value input and display price derived info after API
+  async function removeNews(i) {
+    if (!adminAuthed) return alert('Sign in as admin to remove news.')
+    if (!confirm('Remove this news item?')) return
+    try {
+      const res = await fetch(`${API_BASE}/api/news/${i}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-token': (adminToken || '').trim() },
+      })
+      if (!res.ok) throw new Error('Failed to remove news item')
+      const listRes = await fetch(`${API_BASE}/api/news`)
+      const listData = await parseJsonResponse(listRes)
+      setNews(Array.isArray(listData.news) ? listData.news : [])
+    } catch (err) {
+      alert(err.message || 'Remove failed')
+    }
+  }
+
+  function NavButton({ label, target }) {
+    const isActive = page === target
+    return (
+      <button className={`nav-btn ${isActive ? 'active' : ''}`} onClick={() => setPage(target)}>
+        {label}
+      </button>
+    )
+  }
+
+  function PieChart({ items }) {
+    const size = 240
+    const r = 100
+    const cx = size / 2
+    const cy = size / 2
+    const total = items.reduce((acc, it) => acc + it.percent, 0) || 1
+    let angle = -90
+    const toRad = (deg) => (deg * Math.PI) / 180
+
+    const arcs = items.map((it, i) => {
+      const sliceAngle = (it.percent / total) * 360
+      const start = { x: cx + r * Math.cos(toRad(angle)), y: cy + r * Math.sin(toRad(angle)) }
+      const endAngle = angle + sliceAngle
+      const end = { x: cx + r * Math.cos(toRad(endAngle)), y: cy + r * Math.sin(toRad(endAngle)) }
+      const largeArc = sliceAngle > 180 ? 1 : 0
+      angle = endAngle
+      const hue = (i * 57) % 360
+      return (
+        <path
+          key={i}
+          d={`M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y} Z`}
+          fill={`hsl(${hue}deg 70% 50%)`}
+          stroke="#fff"
+          strokeWidth="1"
+        />
+      )
+    })
+
+    return (
+      <div className="pie-wrap">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Portfolio weight chart">
+          {arcs}
+        </svg>
+        <ul className="legend">
+          {items.map((it, i) => (
+            <li className="legend-item" key={i}>
+              <span className="legend-swatch" style={{ backgroundColor: `hsl(${(i * 57) % 360}deg 70% 50%)` }} />
+              <span className="legend-label">{it.name} - {it.percent}%</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  return (
+    <div className="site">
+      <header className="site-header">
+        <h1 className="site-title">Eton College & Holyport College Investment Club</h1>
+        <p className="site-subtitle">Student-led investing in public markets</p>
+        <nav className="site-nav" aria-label="Main">
+          <NavButton label="About Us" target="about" />
+          <NavButton label="News" target="news" />
+          <NavButton label="Portfolio" target="portfolio" />
+          <NavButton label="Stock Reports" target="reports" />
+          <button className="admin-trigger" onClick={() => setAdminOpen(true)}>Admin</button>
+        </nav>
+      </header>
+
+      <main className="site-main">
+        {page === 'about' && (
+          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
+            <h2 className="section-title">About Us</h2>
+            <p>
+              We are a student-led investment club focusing on long-term equity investing. Our team researches companies,
+              debates opportunities, and publishes transparent reports about our decisions.
+            </p>
+          </motion.section>
+        )}
+
+        {page === 'news' && (
+          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
+            <h2 className="section-title">News</h2>
+            <div className="cards">
+              {news.map((n, i) => (
+                <article className="card" key={i}>
+                  <h3 className="card-title">{n.title}</h3>
+                  <p className="card-meta">{n.date}</p>
+                  <p className="card-body">{n.body}</p>
+                </article>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
+        {page === 'portfolio' && (
+          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
+            <h2 className="section-title">Our Portfolio</h2>
+            {offlineMode && <p className="muted">Offline mode: using local holdings; values/prices may be unavailable.</p>}
+            <div className="value-display" aria-live="polite">Total Portfolio Value: {formatCurrency(totalValue)}</div>
+            {(() => {
+              const sortedHoldings = [...effectiveHoldings].sort((a, b) => {
+                const va = typeof a.value === 'number' ? a.value : -Infinity
+                const vb = typeof b.value === 'number' ? b.value : -Infinity
+                return vb - va
+              })
+              const items = sortedHoldings.map(h => ({
+                name: `${h.name}${h.ticker ? ` (${h.ticker})` : ''}`,
+                percent: typeof h.value === 'number' && totalValue > 0 ? Math.round(((h.value) / totalValue) * 1000) / 10 : 0,
+                value: typeof h.value === 'number' ? h.value : null,
+                shares: Number(h.shares) || 0,
+                pricePerShare: typeof h.pricePerShare === 'number' ? h.pricePerShare : null,
+              }))
+              return (
+                <div className="portfolio-row">
+                  <div className="grid">
+                    {sortedHoldings.map((h, i) => {
+                      const hasValue = typeof h.value === 'number'
+                      const percent = hasValue && totalValue > 0 ? Math.round(((h.value) / totalValue) * 1000) / 10 : 0
+                      const pricePerShare = typeof h.pricePerShare === 'number' ? h.pricePerShare : null
+                      const name = `${h.name}${h.ticker ? ` (${h.ticker})` : ''}`
+                      const isCash = String(h.ticker || '').toUpperCase() === 'CASH' || String(h.name || '').toLowerCase().includes('cash')
+                      const valueText = hasValue ? formatCurrency(h.value) : (isCash ? formatCurrency(0) : 'N/A')
+                      const priceText = pricePerShare != null ? formatPrice(pricePerShare) : 'N/A'
+                      return (
+                        <article className="card" key={`${h.ticker}-${i}`}>
+                          <h3 className="card-title">{name}</h3>
+                          <p className="card-meta">Weight: {percent}%</p>
+                          <p className="card-body">Value: {valueText}</p>
+                          {!isCash && <p className="card-body">Shares: {Number(h.shares) || 0}</p>}
+                          {!isCash && <p className="card-body">Price per Share: {priceText}</p>}
+                        </article>
+                      )
+                    })}
+                  </div>
+                  <div className="chart-col">
+                    <PieChart items={items} />
+                  </div>
+                </div>
+              )
+            })()}
+          </motion.section>
+        )}
+
+        {page === 'reports' && (
+          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
+            <h2 className="section-title">Stock Reports</h2>
+            <div className="cards" style={{ marginBottom: '2rem' }}></div>
+            <ul className="report-list">
+              {reportsList.length === 0 && <li className="muted">No reports yet.</li>}
+              {reportsList.map((r) => {
+                const company = (r.title || r.stockName || r.originalName || '').toString().trim()
+                const ticker = (r.ticker || '').toString().trim().toUpperCase()
+                const type = (r.reportType || '').toString().trim().toLowerCase()
+                const cleanTitle = company && type ? `${company} ${type.charAt(0).toUpperCase()}${type.slice(1)} Report` : (company || r.filename)
+                const membersStr = Array.isArray(r.members) ? r.members.join(', ') : (r.members || '')
+                return (
+                  <li key={r.filename} className="report-item">
+                    <article className="card">
+                      <h3 className="card-title">{cleanTitle}</h3>
+                      {ticker && <p className="card-meta">{company} {ticker ? `(${ticker})` : ''}</p>}
+                      {membersStr && <p className="card-body">{membersStr}</p>}
+                      {r.description && <p className="card-body">{r.description}</p>}
+                      <p className="card-meta">{new Date(r.timestamp).toLocaleDateString()}</p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <a className="link" href={`${API_BASE}/api/reports/download/${encodeURIComponent(r.filename)}`} target="_blank" rel="noreferrer">Download</a>
+                      </div>
+                    </article>
+                  </li>
+                )
+              })}
+            </ul>
+          </motion.section>
+        )}
+      </main>
+
+      {adminOpen && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label="Admin Panel">
+          <div className="modal-panel">
+            <div className="modal-header">
+              <h3>{adminAuthed ? 'Admin Panel' : 'Admin Sign In'}</h3>
+              <button className="close-btn" onClick={() => setAdminOpen(false)} aria-label="Close">×</button>
+            </div>
+
+            {!adminAuthed ? (
+              <form className="upload-form auth-form" onSubmit={handleAdminLogin}>
+                <p className="helper-text">Enter your admin token to continue.</p>
+                <div className="form-row input-with-toggle">
+                  <label htmlFor="adminToken">Admin token</label>
+                  <div className="input-wrap">
+                    <input
+                      id="adminToken"
+                      name="adminToken"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter admin token"
+                      value={adminToken}
+                      onChange={(e) => setAdminToken(e.target.value)}
+                      aria-required="true"
+                    />
+                    <button type="button" className="input-toggle" onClick={() => setShowPassword(v => !v)} aria-label="Toggle visibility">
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+                <div className="actions">
+                  <button className="primary-btn" type="submit">Sign In</button>
+                  <button type="button" className="secondary-btn" onClick={() => setAdminOpen(false)}>Cancel</button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <nav className="tabs" role="tablist" aria-label="Admin sections">
+                  <button
+                    className={`tab-btn ${adminTab === 'news' ? 'active' : ''}`}
+                    role="tab"
+                    aria-selected={adminTab === 'news'}
+                    onClick={() => setAdminTab('news')}
+                  >
+                    News
+                  </button>
+                  <button
+                    className={`tab-btn ${adminTab === 'portfolio' ? 'active' : ''}`}
+                    role="tab"
+                    aria-selected={adminTab === 'portfolio'}
+                    onClick={() => setAdminTab('portfolio')}
+                  >
+                    Portfolio
+                  </button>
+                  <button
+                    className={`tab-btn ${adminTab === 'reports' ? 'active' : ''}`}
+                    role="tab"
+                    aria-selected={adminTab === 'reports'}
+                    onClick={() => setAdminTab('reports')}
+                  >
+                    Reports
+                  </button>
+                </nav>
+                <div className="tab-content">
+                  {adminTab === 'news' && (
+                    <section className="admin-section" role="tabpanel" aria-label="News Management">
+                      <h4 className="section-subtitle">News Management</h4>
+                      <form className="upload-form" onSubmit={addNews}>
+                        <div className="form-row">
+                          <label htmlFor="newsTitle">Title</label>
+                          <input id="newsTitle" name="newsTitle" type="text" required />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="newsDate">Date</label>
+                          <input id="newsDate" name="newsDate" type="text" placeholder="e.g., October 2025" />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="newsBody">Body</label>
+                          <textarea id="newsBody" name="newsBody" rows="3" required />
+                        </div>
+                        <div className="actions">
+                          <button className="primary-btn" type="submit">Add News</button>
+                        </div>
+                      </form>
+                      <ul className="report-list" style={{ marginTop: '12px' }}>
+                        {news.map((item, i) => (
+                          <li key={i} className="report-item">
+                            <span><strong>{item.title}</strong> — <span className="muted">{item.date}</span></span>
+                            <div className="actions">
+                              <button className="secondary-btn" onClick={() => removeNews(i)}>Remove</button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                  {adminTab === 'portfolio' && (
+                    <section className="admin-section" role="tabpanel" aria-label="Portfolio Editor">
+                      <h4 className="section-subtitle">Portfolio Editor</h4>
+                      <div className="actions" style={{ marginBottom: '8px' }}>
+                        <AdminDefaultsButton adminToken={adminToken} onDone={loadHoldings} />
+                      </div>
+                      <div className="form-row">
+                        <div className="value-display" aria-live="polite">Total Portfolio Value: {formatCurrency(totalValue)}</div>
+                      </div>
+                      <form className="upload-form" onSubmit={addHolding}>
+                        <div className="form-row">
+                          <label htmlFor="stockNameInput">Stock Name</label>
+                          <input id="stockNameInput" type="text" value={newHolding.name} onChange={(e) => setNewHolding({ ...newHolding, name: e.target.value })} required />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="stockTickerInput">Stock Ticker</label>
+                          <input id="stockTickerInput" type="text" value={newHolding.ticker} onChange={(e) => setNewHolding({ ...newHolding, ticker: e.target.value.toUpperCase() })} required />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="sharesInput">Number of Shares</label>
+                          <input id="sharesInput" type="number" min="0" step="1" value={newHolding.shares} onChange={(e) => setNewHolding({ ...newHolding, shares: Number(e.target.value || 0) })} required />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="exchangeSelect">Exchange</label>
+                          <select id="exchangeSelect" value={newHolding.exchange} onChange={(e) => setNewHolding({ ...newHolding, exchange: (e.target.value || '').toUpperCase() })}>
+                            <option value="">Select exchange</option>
+                            {exchanges.map(ex => (
+                              <option key={ex.code} value={ex.code}>{ex.name} ({ex.code})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="defaultPriceInput">Default Price (GBP)</label>
+                          <input id="defaultPriceInput" type="number" min="0" step="0.01" placeholder="Optional" value={newHolding.defaultPrice} onChange={(e) => setNewHolding({ ...newHolding, defaultPrice: e.target.value })} />
+                        </div>
+                        <div className="actions">
+                          <button className="primary-btn" type="submit">Add Holding</button>
+                        </div>
+                      </form>
+                      <ul className="report-list" style={{ marginTop: '12px' }}>
+                        {holdings.map((h, i) => {
+                          const ch = calcHoldings.find(x => String(x.ticker || '').toUpperCase() === String(h.ticker || '').toUpperCase()) || {}
+                          const isCash = String(h.ticker).toUpperCase() === 'CASH' || String(h.name).toLowerCase().includes('cash')
+                          const displayValue = typeof ch.value === 'number' ? ch.value : (typeof h.defaultPrice === 'number' ? Math.round(h.defaultPrice * (Number(h.shares) || 0)) : null)
+                          const displayPrice = typeof ch.pricePerShare === 'number' ? ch.pricePerShare : (typeof h.defaultPrice === 'number' ? h.defaultPrice : null)
+                          const weight = totalValue > 0 && typeof displayValue === 'number' ? Math.round((displayValue / totalValue) * 1000) / 10 : 0
+                          return (
+                            <li key={`${h.ticker}-${i}`} className="report-item">
+                              <span>
+                                <strong>{h.name}</strong> — <span className="muted">{h.ticker}</span>
+                                <br />
+                                <span className="muted">Value: {typeof displayValue === 'number' ? formatCurrency(displayValue) : 'N/A'}{!isCash ? ` • Shares: ${h.shares} • Price: ${displayPrice != null ? formatPrice(displayPrice) : 'N/A'}` : ''}</span>
+                                <br />
+                                <span className="muted">Weight: {weight}%</span>
+                              </span>
+                              {editIndex === i ? (
+                                <div className="inline-edit" style={{ marginTop: '8px' }}>
+                                  <label style={{ marginRight: 8 }}>{String(h.ticker).toUpperCase() === 'CASH' ? 'Cash Amount' : 'Number of Shares'}</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step={String(h.ticker).toUpperCase() === 'CASH' ? '1' : '1'}
+                                    value={editInput}
+                                    onChange={(e) => setEditInput(e.target.value)}
+                                    style={{ marginRight: 8 }}
+                                  />
+                                  <div className="actions">
+                                    <button className="primary-btn" type="button" onClick={saveEdit}>Save</button>
+                                    <button className="secondary-btn" type="button" onClick={cancelEdit}>Cancel</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="actions">
+                                  <button
+                                    className="secondary-btn"
+                                    onClick={() => (String(h.ticker).toUpperCase() === 'CASH' ? editCashAmount(i) : editHoldingShares(i))}
+                                    title={String(h.ticker).toUpperCase() === 'CASH' ? 'Edit cash amount' : 'Edit shares'}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button className="secondary-btn" onClick={() => removeHolding(i)}>Remove</button>
+                                </div>
+                              )}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </section>
+                  )}
+                  {adminTab === 'reports' && (
+                    <section className="admin-section" role="tabpanel" aria-label="Upload Stock Report">
+                      <h4 className="section-subtitle">Upload Stock Report</h4>
+
+                      <form className="upload-form" onSubmit={handleAdminUpload}>
+                        <div className="form-row">
+                          <label htmlFor="stockName">Stock Name</label>
+                          <input id="stockName" name="stockName" type="text" required />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="stockTicker">Stock Ticker</label>
+                          <input id="stockTicker" name="stockTicker" type="text" placeholder="e.g., AAPL" required />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="reportType">Report Type</label>
+                          <select id="reportType" name="reportType" required>
+                            <option value="">Select...</option>
+                            <option value="trim">Trim</option>
+                            <option value="buy">Buy</option>
+                            <option value="sell">Sell</option>
+                          </select>
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="description">Description</label>
+                          <textarea id="description" name="description" rows="3" required />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="researchMembersText">Research Members (one per line)</label>
+                          <textarea id="researchMembersText" name="researchMembersText" rows="4" placeholder="Enter one member per line" required />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="reportFile">File Upload (PDF/DOCX)</label>
+                          <input id="reportFile" name="reportFile" type="file" accept=".pdf,.doc,.docx" required />
+                        </div>
+                        <div className="actions">
+                          <button className="primary-btn" type="submit" disabled={uploading}>
+                            {uploading ? 'Uploading...' : 'Upload Report'}
+                          </button>
+                        </div>
+                        {uploadMessage && <p className="status">{uploadMessage}</p>}
+                      </form>
+                      <h4 className="section-subtitle" style={{ marginTop: '16px' }}>Existing Reports</h4>
+                      <ul className="report-list">
+                        {reportsList.length === 0 && <li className="muted">No reports yet.</li>}
+                        {reportsList.map((r) => (
+                          <li key={r.filename} className="report-item">
+                            <span>
+                              <strong>{r.stockName || r.title || r.originalName}</strong>
+                              {r.reportType && <> — <span className="muted">{String(r.reportType).toUpperCase()}</span></>}
+                              {Array.isArray(r.members) && r.members.length > 0 && <> — <span className="muted">{r.members.join(', ')}</span></>}
+                              {!Array.isArray(r.members) && r.members && <> — <span className="muted">{String(r.members)}</span></>}
+                              {r.description && <>
+                                <br />
+                                <span className="muted">{r.description}</span>
+                              </>}
+                              <br />
+                              <span className="muted">{new Date(r.timestamp).toLocaleDateString()}</span>
+                            </span>
+                            <div className="actions">
+                              <a className="link" href={`${API_BASE}/api/reports/download/${encodeURIComponent(r.filename)}`} target="_blank" rel="noreferrer">Download</a>
+                              <button className="secondary-btn" onClick={() => handleDeleteReport(r.filename)}>Remove</button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <footer className="site-footer">
+        <p>© 2025 Eton College and Holyport College Investment Club | Built by Aaran Nihalani</p>
+      </footer>
+    </div>
+  )
+}
+
+export default App
+
+// Update AdminDefaultsButton to accept props
+function AdminDefaultsButton({ adminToken, onDone }) {
+  const [busy, setBusy] = useState(false)
+  return (
+    <button className="secondary-btn" disabled={busy} onClick={async () => {
+      try {
+        setBusy(true)
+        const res = await fetch(`${API_BASE}/api/holdings/defaults`, { method: 'POST', headers: { 'x-admin-token': (adminToken || '').trim() } })
+        if (!res.ok) throw new Error('Failed to populate default prices')
+        if (typeof onDone === 'function') await onDone()
+      } catch (err) {
+        alert(err?.message || 'Defaults population failed')
+      } finally {
+        setBusy(false)
+      }
+    }}>
+      {busy ? 'Populating...' : 'Populate Default Prices'}
+    </button>
+  )
+}
