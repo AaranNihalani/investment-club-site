@@ -5,12 +5,12 @@ import './index.css'
 
 // Base URL for backend API, configurable via Vite env
 const API_BASE = import.meta.env.VITE_API_BASE || ''
+const VALID_PAGES = new Set(['about','news','portfolio','reports','challenge'])
 
 function App() {
-  const validPages = new Set(['about','news','portfolio','reports','challenge'])
   const [page, setPage] = useState(() => {
     const h = (window.location.hash || '').replace('#','').trim().toLowerCase()
-    return validPages.has(h) ? h : 'about'
+    return VALID_PAGES.has(h) ? h : 'about'
   })
   const [reportsList, setReportsList] = useState([])
   const [adminToken, setAdminToken] = useState(localStorage.getItem('ADMIN_TOKEN') || import.meta.env.VITE_ADMIN_TOKEN || '')
@@ -20,11 +20,13 @@ function App() {
   const [adminTab, setAdminTab] = useState('news')
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState('')
+  const [portfolioAuthed, setPortfolioAuthed] = useState(localStorage.getItem('PORTFOLIO_AUTH') === 'true')
+  const [portfolioPassword, setPortfolioPassword] = useState('')
 
   useEffect(() => {
     const onHash = () => {
       const h = (window.location.hash || '').replace('#','').trim().toLowerCase()
-      if (validPages.has(h)) setPage(h)
+      if (VALID_PAGES.has(h)) setPage(h)
     }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
@@ -499,6 +501,18 @@ useEffect(() => {
     setEditInput('')
   }
 
+  function handlePortfolioLogin(e) {
+    e.preventDefault()
+    const pw = String(portfolioPassword || '').trim()
+    if (pw === 'investmentclub') {
+      setPortfolioAuthed(true)
+      localStorage.setItem('PORTFOLIO_AUTH', 'true')
+      setPortfolioPassword('')
+    } else {
+      alert('Incorrect password')
+    }
+  }
+
   async function saveEdit() {
     if (editIndex === null || !editType) return
     const val = Number(editInput)
@@ -808,49 +822,64 @@ useEffect(() => {
         {page === 'portfolio' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
             <h2 className="section-title">Our Portfolio</h2>
-            {offlineMode && <p className="muted">Offline mode: using local holdings; values/prices may be unavailable.</p>}
-            <div className="value-display" aria-live="polite">Total Portfolio Value: {formatCurrency(totalValue)}</div>
-            {(() => {
-              const sortedHoldings = [...effectiveHoldings].sort((a, b) => {
-                const va = typeof a.value === 'number' ? a.value : -Infinity
-                const vb = typeof b.value === 'number' ? b.value : -Infinity
-                return vb - va
-              })
-              const items = sortedHoldings.map(h => ({
-                name: `${h.name}${h.ticker ? ` (${h.ticker})` : ''}`,
-                percent: typeof h.value === 'number' && totalValue > 0 ? Math.round(((h.value) / totalValue) * 1000) / 10 : 0,
-                value: typeof h.value === 'number' ? h.value : null,
-                shares: Number(h.shares) || 0,
-                pricePerShare: typeof h.pricePerShare === 'number' ? h.pricePerShare : null,
-              }))
-              return (
-                <div className="portfolio-row">
-                  <div className="grid">
-                    {sortedHoldings.map((h, i) => {
-                      const hasValue = typeof h.value === 'number'
-                      const percent = hasValue && totalValue > 0 ? Math.round(((h.value) / totalValue) * 1000) / 10 : 0
-                      const pricePerShare = typeof h.pricePerShare === 'number' ? h.pricePerShare : null
-                      const name = `${h.name}${h.ticker ? ` (${h.ticker})` : ''}`
-                      const isCash = String(h.ticker || '').toUpperCase() === 'CASH' || String(h.name || '').toLowerCase().includes('cash')
-                      const valueText = hasValue ? formatCurrency(h.value) : (isCash ? formatCurrency(0) : 'N/A')
-                      const priceText = pricePerShare != null ? formatPrice(pricePerShare) : 'N/A'
-                      return (
-                        <article className="card" key={`${h.ticker}-${i}`}>
-                          <h3 className="card-title">{name}</h3>
-                          <p className="card-meta">Weight: {percent}%</p>
-                          <p className="card-body">Value: {valueText}</p>
-                          {!isCash && <p className="card-body">Shares: {Number(h.shares) || 0}</p>}
-                          {!isCash && <p className="card-body">Price per Share: {priceText}</p>}
-                        </article>
-                      )
-                    })}
-                  </div>
-                  <div className="chart-col">
-                    <PieChart items={items} />
-                  </div>
+            {!portfolioAuthed ? (
+              <form className="upload-form auth-form" onSubmit={handlePortfolioLogin} style={{ maxWidth: '480px' }}>
+                <p className="helper-text">Enter password to view the portfolio.</p>
+                <div className="form-row">
+                  <label htmlFor="portfolioPassword">Password</label>
+                  <input id="portfolioPassword" name="portfolioPassword" type="password" value={portfolioPassword} onChange={(e) => setPortfolioPassword(e.target.value)} required />
                 </div>
-              )
-            })()}
+                <div className="actions">
+                  <button className="primary-btn" type="submit">Unlock</button>
+                </div>
+              </form>
+            ) : (
+              <>
+                {offlineMode && <p className="muted">Offline mode: using local holdings; values/prices may be unavailable.</p>}
+                <div className="value-display" aria-live="polite">Total Portfolio Value: {formatCurrency(totalValue)}</div>
+                {(() => {
+                  const sortedHoldings = [...effectiveHoldings].sort((a, b) => {
+                    const va = typeof a.value === 'number' ? a.value : -Infinity
+                    const vb = typeof b.value === 'number' ? b.value : -Infinity
+                    return vb - va
+                  })
+                  const items = sortedHoldings.map(h => ({
+                    name: `${h.name}${h.ticker ? ` (${h.ticker})` : ''}`,
+                    percent: typeof h.value === 'number' && totalValue > 0 ? Math.round(((h.value) / totalValue) * 1000) / 10 : 0,
+                    value: typeof h.value === 'number' ? h.value : null,
+                    shares: Number(h.shares) || 0,
+                    pricePerShare: typeof h.pricePerShare === 'number' ? h.pricePerShare : null,
+                  }))
+                  return (
+                    <div className="portfolio-row">
+                      <div className="grid">
+                        {sortedHoldings.map((h, i) => {
+                          const hasValue = typeof h.value === 'number'
+                          const percent = hasValue && totalValue > 0 ? Math.round(((h.value) / totalValue) * 1000) / 10 : 0
+                          const pricePerShare = typeof h.pricePerShare === 'number' ? h.pricePerShare : null
+                          const name = `${h.name}${h.ticker ? ` (${h.ticker})` : ''}`
+                          const isCash = String(h.ticker || '').toUpperCase() === 'CASH' || String(h.name || '').toLowerCase().includes('cash')
+                          const valueText = hasValue ? formatCurrency(h.value) : (isCash ? formatCurrency(0) : 'N/A')
+                          const priceText = pricePerShare != null ? formatPrice(pricePerShare) : 'N/A'
+                          return (
+                            <article className="card" key={`${h.ticker}-${i}`}>
+                              <h3 className="card-title">{name}</h3>
+                              <p className="card-meta">Weight: {percent}%</p>
+                              <p className="card-body">Value: {valueText}</p>
+                              {!isCash && <p className="card-body">Shares: {Number(h.shares) || 0}</p>}
+                              {!isCash && <p className="card-body">Price per Share: {priceText}</p>}
+                            </article>
+                          )
+                        })}
+                      </div>
+                      <div className="chart-col">
+                        <PieChart items={items} />
+                      </div>
+                    </div>
+                  )
+                })()}
+              </>
+            )}
           </motion.section>
         )}
 
