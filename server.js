@@ -69,7 +69,7 @@ let EXCHANGES = []
 try {
   const raw = fs.readFileSync(exchangesPath, 'utf8')
   EXCHANGES = JSON.parse(raw)
-} catch (err) {
+} catch {
   EXCHANGES = [
     { code: 'XNAS', name: 'NASDAQ', suffix: '', currency: 'USD' },
     { code: 'XNYS', name: 'NYSE', suffix: '', currency: 'USD' },
@@ -108,7 +108,7 @@ async function fetchFxRates() {
       fetchFxRates._ts = now
       return val
     }
-  } catch (_) { /* ignore */ }
+  } catch { /* ignore */ }
   try {
     const r1 = await fetch(`https://finnhub.io/api/v1/forex/candle?symbol=OANDA:GBP_USD&resolution=1&count=1&token=${FINNHUB_KEY}`)
     const j1 = await r1.json()
@@ -124,7 +124,7 @@ async function fetchFxRates() {
       fetchFxRates._ts = now
       return val
     }
-  } catch (_) { /* ignore */ }
+  } catch { /* ignore */ }
   const fallback = { usdGbp: 0.78, usdEur: 0.92 }
   fetchFxRates._cache = fallback
   fetchFxRates._ts = now
@@ -155,7 +155,6 @@ async function fetchPriceGBP(ticker, exchangeCode) {
   const mapped = mapSymbolForExchange(ticker, exchangeCode)
   const rates = await fetchFxRates()
   const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(mapped)}&token=${FINNHUB_KEY}`
-  let reason = ''
   try {
     const r = await fetch(url)
     const j = await r.json()
@@ -165,9 +164,8 @@ async function fetchPriceGBP(ticker, exchangeCode) {
       fetchPriceGBP._cache.set(key, { price: gbp, ts: now })
       return gbp
     }
-    reason = 'Finnhub price invalid after conversion'
-  } catch (err) {
-    reason = `Finnhub fetch exception: ${err.message}`
+  } catch {
+    return null
   }
   return null
 }
@@ -275,8 +273,8 @@ app.put('/api/holdings', (req, res) => {
   })).map(h => {
     const prev = existing.find(ph => String(ph.ticker || '').toUpperCase().trim() === h.ticker)
     const dp = (typeof h.defaultPrice === 'number') ? h.defaultPrice : (typeof prev?.defaultPrice === 'number' ? prev.defaultPrice : undefined)
-    const { defaultPrice, ...rest } = h
-    return (typeof dp === 'number') ? { ...rest, defaultPrice: dp } : rest
+  const { defaultPrice: _DEFAULT_PRICE, ...rest } = h
+  return (typeof dp === 'number') ? { ...rest, defaultPrice: dp } : rest
   })
   try {
     writeHoldings(cleaned)
@@ -298,6 +296,8 @@ app.get('/api/reports', async (req, res) => {
       const normalizedMembers = Array.isArray(m.members)
         ? m.members
         : (typeof m.members === 'string' ? m.members.split(',').map(s => s.trim()).filter(Boolean) : null)
+      const providedTs = m.date ? Date.parse(m.date) : NaN
+      const ts = Number.isFinite(providedTs) ? providedTs : stats.mtimeMs
       return {
         filename,
         originalName: m.originalName || originalNameMatch || filename,
@@ -306,7 +306,8 @@ app.get('/api/reports', async (req, res) => {
         reportType: m.reportType || null,
         members: normalizedMembers,
         description: m.description || null,
-        timestamp: stats.mtimeMs,
+        date: m.date || null,
+        timestamp: ts,
         size: stats.size,
       }
     }).sort((a,b) => b.timestamp - a.timestamp)
@@ -339,6 +340,7 @@ app.post('/api/reports/upload', upload.single('report'), (req, res) => {
   const membersRaw = (req.body?.researchMembers || '').toString().trim()
   const members = membersRaw ? membersRaw.split(',').map(s => s.trim()).filter(Boolean) : null
   const description = (req.body?.description || '').toString().trim().slice(0, 1000)
+  const reportDateRaw = (req.body?.reportDate || '').toString().trim().slice(0, 50)
 
   if (!title || !members || !description) {
     // Remove uploaded file if metadata is incomplete
@@ -353,6 +355,7 @@ app.post('/api/reports/upload', upload.single('report'), (req, res) => {
     reportType,
     members,
     description,
+    date: reportDateRaw || null,
     originalName: req.file.originalname,
   }
   writeMeta(meta)

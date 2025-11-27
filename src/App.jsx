@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion'
 import './index.css'
@@ -21,29 +21,7 @@ function App() {
   const [holdings, setHoldings] = useState([])
   const [calcHoldings, setCalcHoldings] = useState([])
   const [offlineMode, setOfflineMode] = useState(false)
-  // Fallback mapping when API calc fails
-  const makeFallbackCalc = (base) => base.map(h => {
-  const t = String(h.ticker || '').toUpperCase().trim();
-  if (t === 'CASH') {
-    const cashVal = Number(h.shares) || 0; // your app stores cash amount in `shares`
-    return {
-      name: h.name,
-      ticker: t,
-      shares: 0,
-      value: Math.round(cashVal),
-      weight: 0,
-      pricePerShare: 1
-    };
-  }
-  return {
-    name: h.name,
-    ticker: t,
-    shares: Number(h.shares) || 0,
-    value: null,
-    weight: 0,
-    pricePerShare: null,
-  };
-});
+  // Fallback mapping removed (unused)
 
   // Preserve last known values/prices while waiting for API recalculation
   const mergeCalcHoldings = (base, prev) => {
@@ -167,7 +145,7 @@ useEffect(() => {
   }
 
   // New: expose loadHoldings for AdminDefaultsButton onDone and for initial mount
-  async function loadHoldings() {
+  const loadHoldings = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/holdings`)
       const data = await parseJsonResponse(res)
@@ -177,7 +155,7 @@ useEffect(() => {
     } catch (err) {
       console.warn('Load persisted holdings failed:', err)
     }
-  }
+  }, [])
   async function persistHoldings(base) {
     try {
       if (!adminAuthed || !adminToken) {
@@ -316,6 +294,7 @@ useEffect(() => {
     const stockName = formEl.stockName?.value?.trim()
     const reportType = formEl.reportType?.value?.trim().toLowerCase()
     const description = formEl.description?.value?.trim()
+    const reportDate = formEl.reportDate?.value?.trim()
     const membersText = formEl.researchMembersText?.value || ''
     const members = membersText.split('\n').map(s => s.trim()).filter(Boolean).join(',')
     const allowedTypes = ['trim','buy','sell']
@@ -332,6 +311,7 @@ useEffect(() => {
       form.append('reportType', reportType)
       form.append('researchMembers', members)
       form.append('description', description)
+      if (reportDate) form.append('reportDate', reportDate)
       const res = await fetch(`${API_BASE}/api/reports/upload`, {
         method: 'POST',
         headers: { 'x-admin-token': (adminToken || '').trim() },
@@ -479,7 +459,7 @@ useEffect(() => {
   // Load persisted holdings on mount
   useEffect(() => {
     loadHoldings()
-  }, [])
+  }, [loadHoldings])
 
   function editHoldingShares(index) {
     const current = holdings[index]
@@ -654,6 +634,7 @@ useEffect(() => {
           <NavButton label="News" target="news" />
           <NavButton label="Portfolio" target="portfolio" />
           <NavButton label="Stock Reports" target="reports" />
+          <NavButton label="Investment Challenge" target="challenge" />
           <button className="admin-trigger" onClick={() => setAdminOpen(true)}>Admin</button>
         </nav>
       </header>
@@ -681,6 +662,16 @@ useEffect(() => {
                 </article>
               ))}
             </div>
+          </motion.section>
+        )}
+
+        {page === 'challenge' && (
+          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
+            <h2 className="section-title">Investment Challenge</h2>
+            <p className="section-text">
+              The club is organizing an investment challenge. Rules, timelines, and submission details
+              will be posted here. Check back soon for updates and how to participate.
+            </p>
           </motion.section>
         )}
 
@@ -752,7 +743,7 @@ useEffect(() => {
                       {ticker && <p className="card-meta">{company} {ticker ? `(${ticker})` : ''}</p>}
                       {membersStr && <p className="card-body">{membersStr}</p>}
                       {r.description && <p className="card-body">{r.description}</p>}
-                      <p className="card-meta">{new Date(r.timestamp).toLocaleDateString()}</p>
+                      <p className="card-meta">{r.date || new Date(r.timestamp).toLocaleDateString()}</p>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <a className="link" href={`${API_BASE}/api/reports/download/${encodeURIComponent(r.filename)}`} target="_blank" rel="noreferrer">Download</a>
                       </div>
@@ -971,6 +962,10 @@ useEffect(() => {
                           </select>
                         </div>
                         <div className="form-row">
+                          <label htmlFor="reportDate">Report Date</label>
+                          <input id="reportDate" name="reportDate" type="date" />
+                        </div>
+                        <div className="form-row">
                           <label htmlFor="description">Description</label>
                           <textarea id="description" name="description" rows="3" required />
                         </div>
@@ -1004,7 +999,7 @@ useEffect(() => {
                                 <span className="muted">{r.description}</span>
                               </>}
                               <br />
-                              <span className="muted">{new Date(r.timestamp).toLocaleDateString()}</span>
+                              <span className="muted">{r.date || new Date(r.timestamp).toLocaleDateString()}</span>
                             </span>
                             <div className="actions">
                               <a className="link" href={`${API_BASE}/api/reports/download/${encodeURIComponent(r.filename)}`} target="_blank" rel="noreferrer">Download</a>
