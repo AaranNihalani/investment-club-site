@@ -7,7 +7,11 @@ import './index.css'
 const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 function App() {
-  const [page, setPage] = useState('about')
+  const validPages = new Set(['about','news','portfolio','reports','challenge'])
+  const [page, setPage] = useState(() => {
+    const h = (window.location.hash || '').replace('#','').trim().toLowerCase()
+    return validPages.has(h) ? h : 'about'
+  })
   const [reportsList, setReportsList] = useState([])
   const [adminToken, setAdminToken] = useState(localStorage.getItem('ADMIN_TOKEN') || import.meta.env.VITE_ADMIN_TOKEN || '')
   const [adminOpen, setAdminOpen] = useState(false)
@@ -16,6 +20,20 @@ function App() {
   const [adminTab, setAdminTab] = useState('news')
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState('')
+
+  useEffect(() => {
+    const onHash = () => {
+      const h = (window.location.hash || '').replace('#','').trim().toLowerCase()
+      if (validPages.has(h)) setPage(h)
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+
+  useEffect(() => {
+    const current = (window.location.hash || '').replace('#','').trim().toLowerCase()
+    if (current !== page) window.location.hash = page
+  }, [page])
 
   // Holdings for portfolio editor (name, ticker, shares, value)
   const [holdings, setHoldings] = useState([])
@@ -667,11 +685,123 @@ useEffect(() => {
 
         {page === 'challenge' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
-            <h2 className="section-title">Investment Challenge</h2>
-            <p className="section-text">
-              The club is organizing an investment challenge. Rules, timelines, and submission details
-              will be posted here. Check back soon for updates and how to participate.
+            <h2 className="section-title">The Gundlach Investment Challenge 2026</h2>
+
+            <h3 className="section-subtitle">Introduction</h3>
+
+            <p>
+              The Investment Challenge offers students the chance to showcase their financial
+              literacy and investment skills in a simulated market environment. Teams will
+              design and execute multi-month strategies while discovering how complex
+              financial markets work—and why disciplined risk management matters.
             </p>
+
+            <p>
+              In its second year, the competition awards over £3,000 in prizes to the top
+              performers and is open to all Etonians and students from partner schools.
+            </p>
+            <h3 className="section-subtitle">Digital Overview for Partner Schools</h3>
+
+            <div className="challenge-text">
+              <article className="challenge-card mission-card">
+                <h3 className="section-subtitle">Mission</h3>
+                <p>
+                  The Eton College Investment Challenge aims to provide a rigorous, professionally structured introduction to financial markets for students across Eton and participating partner schools. The competition mirrors real-world investment practice by requiring teams to:
+                </p>
+                <ul className="challenge-bullets">
+                  <li>Develop and submit an investment strategy</li>
+                  <li>Implement it over a multi-month period</li>
+                  <li>Evaluate performance, articulate lessons learned, and present their strategy to a professional judging panel</li>
+                </ul>
+                <p>
+                  The challenge cultivates disciplined analysis, thoughtful risk-management, and evidence-based decision-making. Through strategy submissions, performance tracking, and a final presentation round, students build the analytical, quantitative, and communication skills expected in modern investment roles.
+                </p>
+                <p>
+                  Our broader objective is to help form informed, reflective, and responsible young investors who can engage with financial markets and economic issues with clarity and sound judgement.
+                </p>
+              </article>
+
+              <article className="challenge-card structure-card">
+                <h3 className="section-subtitle">Competition Structure</h3>
+                <ol className="challenge-steps">
+                  <li className="challenge-step">
+                    <div className="challenge-step-title">Registration</div>
+                    <ul>
+                      <li>Teams of 2–4 students submit:</li>
+                      <li>A Google Form registration</li>
+                      <li>A 1–2 page investment strategy summary</li>
+                      <li>A selection of up to three equities, diversified by sector</li>
+                      <li>The judging panel and student committee will jointly select 100 teams to enter the live competition.</li>
+                    </ul>
+                  </li>
+                  <li className="challenge-step">
+                    <div className="challenge-step-title">Platform & Portfolio Tracking</div>
+                    <ul>
+                      <li>All selected teams receive a paper portfolio mirroring their submitted strategy.</li>
+                      <li>Members of the student commitee oversee the digital platform infrastructure, ensuring:</li>
+                      <li>Access to portfolio dashboards</li>
+                      <li>Real-time tracking</li>
+                      <li>Comparative performance displays</li>
+                      <li>Public-facing prize information for transparency</li>
+                      <li>Weekly briefings summarising market events and portfolio impacts will be written and circulated by the student team.</li>
+                    </ul>
+                  </li>
+                  <li className="challenge-step">
+                    <div className="challenge-step-title">Strategy Adjustments During the Competition</div>
+                    <ul>
+                      <li>Teams may request portfolio changes during the competition by submitting a short written explanation. These will be reviewed within a few days by the student committee.</li>
+                      <li>Note: the quality, not the frequency, of adjustments matters.</li>
+                    </ul>
+                  </li>
+                  <li className="challenge-step">
+                    <div className="challenge-step-title">Final Presentations</div>
+                    <ul>
+                      <li>After the trading period, all 100 portfolios will be reviewed. Judges and student committee members will select the top 25–30 teams.</li>
+                      <li>These teams will deliver a 5-minute presentation at Eton College (expected venue: Jafar Hall or School Hall). Presentations cover:</li>
+                      <li>Their original thesis</li>
+                      <li>Portfolio evolution</li>
+                      <li>Performance drivers</li>
+                      <li>Key lessons</li>
+                      <li>Judges then select the winners.</li>
+                    </ul>
+                  </li>
+                </ol>
+              </article>
+            </div>
+
+            <h3 className="section-subtitle">Judging Panel (2026)</h3>
+            <div className="cards">
+              <article className="card">
+                <h4 className="card-title">Anne-Christine Farstad — Global Equity Portfolio Manager, MFS Investment Management</h4>
+                <p className="card-body">
+                  Anne-Christine Farstad is a senior portfolio manager at MFS, responsible for final buy/sell decisions, risk management, and portfolio construction within their contrarian equity strategies. She joined MFS in 2005 and is recognised as one of the leading female portfolio managers in the UK. Her value-investing discipline and long-term analytical approach provide deep insight for student strategies.
+                </p>
+              </article>
+              <article className="card">
+                <h4 className="card-title">Mr Peter Davies — Fund Manager, Lansdowne Partners</h4>
+                <p className="card-body">
+                  Mr Davies is a veteran fund manager at Lansdowne Partners, one of London’s most high-profile hedge funds. Having joined in 2001, he has decades of experience in global equity markets, macro-driven strategy, and risk-adjusted portfolio construction. His background at Merrill Lynch/Mercury Asset Management further deepens the expertise he brings to evaluating student investment theses.
+                </p>
+              </article>
+              <article className="card">
+                <h4 className="card-title">Matthew Wood (or James Roycroft) — Lancaster Investment Management</h4>
+                <p className="card-body">
+                  Matthew Wood has experience in fund monitoring, operations, and risk-control processes within boutique investment environments. His operational perspective ensures that student strategies are judged not only on profitability and thesis quality but also on real-world implementability.
+                </p>
+              </article>
+            </div>
+
+            <h3 className="section-subtitle">Awards — The Gundlach Investment Prize</h3>
+            <p>Thanks to the generosity of former Etonian Henry Gundlach (Georgetown University McDonough School of Business), the prize fund for 2026 is substantial.</p>
+            <p>Proposed awards:</p>
+            <ul>
+              <li>1st Place: £2,000 portfolio</li>
+              <li>2nd Place: £1,000 portfolio</li>
+              <li>3rd Place: £500 portfolio</li>
+              <li>Additional Prize: Highest absolute-return portfolio</li>
+            </ul>
+            <p>Prize distribution among team members will be finalised closer to the date.</p>
+            <p>The prize will be formally titled: The Gundlach Investment Prize</p>
           </motion.section>
         )}
 
