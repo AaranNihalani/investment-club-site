@@ -659,9 +659,14 @@ useEffect(() => {
   return (
     <div className="site">
       <header className="site-header">
-        <h1 className="site-title">Eton College & Holyport College Investment Club</h1>
-        <p className="site-subtitle">Student-led investing in public markets</p>
-        <nav className="site-nav" aria-label="Main">
+        <div className="branding">
+          <img src="/logo.png" alt="Investment Club logo" className="logo-img" />
+          <div>
+            <h1 className="site-title">Eton College & Holyport College Investment Club</h1>
+            <p className="site-subtitle">Student-led investing in public markets</p>
+          </div>
+        </div>
+        <nav className="nav" aria-label="Main">
           <NavButton label="About Us" target="about" />
           <NavButton label="News" target="news" />
           <NavButton label="Portfolio" target="portfolio" />
@@ -674,10 +679,30 @@ useEffect(() => {
       <main className="site-main">
         {page === 'about' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
-            <h2 className="section-title">About Us</h2>
-            <p>
-              We are a student-led investment club focusing on long-term equity investing. Our team researches companies,
-              debates opportunities, and publishes transparent reports about our decisions.
+            <h2 className="section-title">About the Eton College and Holyport College Investment Club</h2>
+            <p className="section-text">
+              Founded in 2015, the Eton College and Holyport College Investment Club (ECHCIC) is a unique, student-run fund managing a real-money portfolio valued at approximately £50,000. Established as a charitable enterprise, the Club was created to provide a practical, real-world environment for students from both schools to learn about investing, finance, and portfolio management.
+            </p>
+
+            <h3 className="section-subtitle">Our Ethos: Education, Partnership, and Philanthropy</h3>
+            <div className="cards">
+              <article className="card">
+                <h3 className="card-title">Practical Education</h3>
+                <p className="card-body">To provide hands-on experience in equity analysis, research, and investment decision-making within a real market environment.</p>
+              </article>
+              <article className="card">
+                <h3 className="card-title">Genuine Partnership</h3>
+                <p className="card-body">To foster a collaborative community between Eton and Holyport College students, working together towards a common goal.</p>
+              </article>
+              <article className="card">
+                <h3 className="card-title">Social Impact</h3>
+                <p className="card-body">To operate as a charitable enterprise, donating 50% of our annual profits to Holyport College, with the remaining 50% reinvested to grow the fund.</p>
+              </article>
+            </div>
+
+            <h3 className="section-subtitle">Our Structure: Student-Led, Advisor-Guided</h3>
+            <p className="section-text">
+              The Club is entirely student-run. A 15-member Internal Board, comprising Executive Officers and Sector Leaders from both Eton and Holyport, holds sole voting power on all trades. They are supported by Research Analysts who conduct in-depth analysis and present stock recommendations. This entire process is guided, but not directed, by an external Advisory Board of finance professionals who provide feedback and oversight, ensuring a rigorous and educational experience for all members.
             </p>
           </motion.section>
         )}
