@@ -26,18 +26,7 @@ const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_O
   .split(',')
   .map(s => s.trim())
   .filter(Boolean)
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  ...FRONTEND_ORIGINS,
-]
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true)
-    if (allowedOrigins.includes(origin)) return callback(null, true)
-    return callback(new Error('Not allowed by CORS'))
-  },
-}))
+app.use(cors())
 app.use(express.json())
 
 // Behind proxy (Render), trust X-Forwarded-* headers
@@ -427,9 +416,9 @@ if (fs.existsSync(distDir)) {
   })
 }
 
-app.listen(PORT, () => {
-  console.log(`Server listening at http://localhost:${PORT}`)
-})
+ app.listen(PORT, '0.0.0.0', () => {
+   console.log(`Server listening on 0.0.0.0:${PORT}`)
+ })
 
 // Holdings persistence (JSON file)
 const holdingsPath = path.resolve(DATA_ROOT, 'data', 'holdings.json')
