@@ -382,6 +382,9 @@ app.delete('/api/reports/:filename', (req, res) => {
 })
 
 // Serve static assets from Vite build
+// Publicly serve uploaded assets (e.g., challenge documents)
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
+
 const distDir = path.resolve(process.cwd(), 'dist')
 const indexHtmlPath = path.join(distDir, 'index.html')
 if (fs.existsSync(distDir)) {

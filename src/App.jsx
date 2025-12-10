@@ -5,7 +5,7 @@ import './index.css'
 
 // Base URL for backend API, configurable via Vite env
 const API_BASE = import.meta.env.VITE_API_BASE || ''
-const VALID_PAGES = new Set(['about','news','portfolio','reports','challenge'])
+const VALID_PAGES = new Set(['about','news','portfolio','reports','challenge','signup'])
 
 function App() {
   const [page, setPage] = useState(() => {
@@ -22,6 +22,12 @@ function App() {
   const [uploadMessage, setUploadMessage] = useState('')
   const [portfolioAuthed, setPortfolioAuthed] = useState(localStorage.getItem('PORTFOLIO_AUTH') === 'true')
   const [portfolioPassword, setPortfolioPassword] = useState('')
+  const [docTab, setDocTab] = useState('template')
+  const challengeDocs = [
+    { key: 'template', label: 'Input Template', file: 'Input Template.pdf', blurb: 'This is the official template to complete your team’s investment strategy submission.' },
+    { key: 'exemplar', label: 'Exemplar Input', file: 'Exemplar Input.pdf', blurb: 'This exemplar shows a completed strategy submission for reference.' },
+    { key: 'prize', label: 'Prize Guide', file: 'Invesment Prize Guide.pdf', blurb: 'This guide outlines awards criteria and prize distribution for the challenge.' },
+  ]
 
   useEffect(() => {
     const onHash = () => {
@@ -672,6 +678,7 @@ useEffect(() => {
           <NavButton label="Portfolio" target="portfolio" />
           <NavButton label="Stock Reports" target="reports" />
           <NavButton label="Investment Challenge" target="challenge" />
+          <NavButton label="Challenge Signup" target="signup" />
           <button className="admin-trigger" onClick={() => setAdminOpen(true)}>Admin</button>
         </nav>
       </header>
@@ -707,6 +714,41 @@ useEffect(() => {
           </motion.section>
         )}
 
+        {page === 'signup' && (
+          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
+            <h2 className="section-title">Challenge Signup</h2>
+            <p className="section-text">Use the documents below to register and prepare your team’s submission.</p>
+            <nav className="tabs" role="tablist" aria-label="Challenge documents">
+              {challengeDocs.map(d => (
+                <button
+                  key={d.key}
+                  className={`tab-btn ${docTab === d.key ? 'active' : ''}`}
+                  role="tab"
+                  aria-selected={docTab === d.key}
+                  onClick={() => setDocTab(d.key)}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </nav>
+            <div className="tab-content">
+              {(() => {
+                const active = challengeDocs.find(d => d.key === docTab) || challengeDocs[0]
+                const docUrl = `${API_BASE}/uploads/Docs/${encodeURIComponent(active.file)}`
+                return (
+                  <article className="card">
+                    <h3 className="card-title">{active.label}</h3>
+                    <p className="card-body">{active.blurb}</p>
+                    <div style={{ marginTop: '12px' }}>
+                      <iframe title={active.label} src={docUrl} style={{ width: '100%', height: '600px', border: '1px solid var(--border)', borderRadius: '12px' }} />
+                    </div>
+                  </article>
+                )
+              })()}
+            </div>
+          </motion.section>
+        )}
+
         {page === 'news' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
             <h2 className="section-title">News</h2>
@@ -725,6 +767,7 @@ useEffect(() => {
         {page === 'challenge' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
             <h2 className="section-title">The Gundlach Investment Challenge 2026</h2>
+            <p className="section-text">See the challenge signup page for more details. <a className="link" href="#signup">Challenge Signup</a></p>
 
             <h3 className="section-subtitle">Introduction</h3>
 
