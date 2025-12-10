@@ -26,7 +26,7 @@ function App() {
   const challengeDocs = [
     { key: 'template', label: 'Input Template', file: 'Input Template.pdf', blurb: 'This is the official template to complete your team’s investment strategy submission.' },
     { key: 'exemplar', label: 'Exemplar Input', file: 'Exemplar Input.pdf', blurb: 'This exemplar shows a completed strategy submission for reference.' },
-    { key: 'prize', label: 'Prize Guide', file: 'Invesment Prize Guide.pdf', blurb: 'This guide outlines awards criteria and prize distribution for the challenge.' },
+    { key: 'prize', label: 'Prize Guide', file: 'Investment Prize Guide.pdf', blurb: 'This guide outlines awards criteria and prize distribution for the challenge.' },
   ]
 
   useEffect(() => {
@@ -734,7 +734,7 @@ useEffect(() => {
             <div className="tab-content">
               {(() => {
                 const active = challengeDocs.find(d => d.key === docTab) || challengeDocs[0]
-                const docUrl = `${API_BASE}/uploads/Docs/${encodeURIComponent(active.file)}`
+                const docUrl = `${API_BASE}/uploads/docs/${encodeURIComponent(active.file)}`
                 return (
                   <article className="card">
                     <h3 className="card-title">{active.label}</h3>

@@ -12,23 +12,52 @@ const app = express()
 const PORT = process.env.PORT || 3001
 const FINNHUB_KEY = process.env.FINNHUB_KEY || ''
 
-// Allow frontend origin from env if provided
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || ''
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174']
-if (FRONTEND_ORIGIN) allowedOrigins.push(FRONTEND_ORIGIN)
-app.use(cors({ origin: allowedOrigins }))
+// Resolve persistent data root (Render recommended: /var/data)
+const DATA_ROOT = (() => {
+  const preferred = process.env.DATA_ROOT || '/var/data'
+  try {
+    if (fs.existsSync(preferred)) return preferred
+  } catch { /* ignore */ }
+  return process.cwd()
+})()
+
+// Allow frontend origin(s) from env (comma-separated)
+const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  ...FRONTEND_ORIGINS,
+]
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    return callback(new Error('Not allowed by CORS'))
+  },
+}))
 app.use(express.json())
 
 // Behind proxy (Render), trust X-Forwarded-* headers
 app.set('trust proxy', 1)
 // Basic security headers
-app.use(helmet())
+app.use(helmet({
+  frameguard: false,
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}))
 // Rate limit API
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false })
 app.use('/api', apiLimiter)
 
-// Ensure reports directory exists and helpers
-const reportsDir = path.resolve(process.cwd(), 'uploads', 'reports')
+// Persistent storage paths
+const uploadsDir = path.resolve(DATA_ROOT, 'uploads')
+const docsDir = path.resolve(uploadsDir, 'Docs')
+const reportsDir = path.resolve(uploadsDir, 'reports')
+fs.mkdirSync(uploadsDir, { recursive: true })
+fs.mkdirSync(docsDir, { recursive: true })
 fs.mkdirSync(reportsDir, { recursive: true })
 const metaPath = path.join(reportsDir, 'meta.json')
 if (!fs.existsSync(metaPath)) fs.writeFileSync(metaPath, JSON.stringify({}, null, 2))
@@ -383,7 +412,7 @@ app.delete('/api/reports/:filename', (req, res) => {
 
 // Serve static assets from Vite build
 // Publicly serve uploaded assets (e.g., challenge documents)
-app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
+app.use('/uploads', express.static(uploadsDir))
 
 const distDir = path.resolve(process.cwd(), 'dist')
 const indexHtmlPath = path.join(distDir, 'index.html')
@@ -403,7 +432,7 @@ app.listen(PORT, () => {
 })
 
 // Holdings persistence (JSON file)
-const holdingsPath = path.resolve(process.cwd(), 'data', 'holdings.json')
+const holdingsPath = path.resolve(DATA_ROOT, 'data', 'holdings.json')
 fs.mkdirSync(path.dirname(holdingsPath), { recursive: true })
 if (!fs.existsSync(holdingsPath)) fs.writeFileSync(holdingsPath, JSON.stringify([], null, 2))
 function readHoldings() { try { return JSON.parse(fs.readFileSync(holdingsPath, 'utf8')) } catch { return [] } }
@@ -422,7 +451,7 @@ app.get('/api/holdings', (req, res) => {
 // Duplicate removed: /api/holdings PUT is defined earlier with defaultPrice preservation.
 
 // News persistence (JSON file)
-const newsPath = path.resolve(process.cwd(), 'data', 'news.json')
+const newsPath = path.resolve(DATA_ROOT, 'data', 'news.json')
 fs.mkdirSync(path.dirname(newsPath), { recursive: true })
 if (!fs.existsSync(newsPath)) fs.writeFileSync(newsPath, JSON.stringify([], null, 2))
 function readNews() { try { return JSON.parse(fs.readFileSync(newsPath, 'utf8')) } catch { return [] } }
