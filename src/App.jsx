@@ -24,9 +24,9 @@ function App() {
   const [portfolioPassword, setPortfolioPassword] = useState('')
   const [docTab, setDocTab] = useState('template')
   const challengeDocs = [
-    { key: 'template', label: 'Input Template', file: 'Input Template.pdf', blurb: 'This is the official template to complete your team’s investment strategy submission.' },
-    { key: 'exemplar', label: 'Exemplar Input', file: 'Exemplar Input.pdf', blurb: 'This exemplar shows a completed strategy submission for reference.' },
     { key: 'prize', label: 'Prize Guide', file: 'Investment Prize Guide.pdf', blurb: 'This guide outlines awards criteria and prize distribution for the challenge.' },
+    { key: 'template', label: 'Input Template', file: 'Input Template.pdf', blurb: <>Once you are clear on the objective of this initial investment strategy, please fill out the template below and submit <a href="https://bit.ly/ECHCIC" target="_blank" rel="noopener noreferrer">this form</a> before the 10th January 2025.</> },
+    { key: 'exemplar', label: 'Exemplar Input', file: 'Exemplar Input.pdf', blurb: 'Here is an exemplar strategy which three students from Holyport College created: ' }
   ]
 
   useEffect(() => {
@@ -717,7 +717,7 @@ useEffect(() => {
         {page === 'signup' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
             <h2 className="section-title">Challenge Signup</h2>
-            <p className="section-text">Use the documents below to register and prepare your team’s submission.</p>
+            <p className="section-text">Thank you for taking the time to sign up for this year’s Investment Prize under the ECHCIC. Please start by reading the documents below on how to fill out your application:</p>
             <nav className="tabs" role="tablist" aria-label="Challenge documents">
               {challengeDocs.map(d => (
                 <button
@@ -767,20 +767,25 @@ useEffect(() => {
         {page === 'challenge' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
             <h2 className="section-title">The Gundlach Investment Challenge 2026</h2>
-            <p className="section-text">See the challenge signup page for more details. <a className="link" href="#signup">Challenge Signup</a></p>
+            <p className="section-text">
+              See the{' '}
+              <a className="link" href="#signup" style={{ fontSize: '1.1em', fontWeight: 600 }}>
+                Challenge Signup
+              </a>{' '}
+              page for more details.
+            </p>
 
             <h3 className="section-subtitle">Introduction</h3>
 
             <p>
-              The Investment Challenge offers students the chance to showcase their financial
-              literacy and investment skills in a simulated market environment. Teams will
-              design and execute multi-month strategies while discovering how complex
-              financial markets work—and why disciplined risk management matters.
+              The ECHCIC Investment Challenge offers students the chance to showcase their financial literacy and investment skills in a 
+              simulated market environment. Teams will design and execute 3-month strategies while discovering how complex financial markets work, 
+              and why disciplined risk management matters. 
             </p>
 
             <p>
-              In its second year, the competition awards over £3,000 in prizes to the top
-              performers and is open to all Etonians and students from partner schools.
+              In its second year, the competition awards roughly £2,000 in prizes 
+              to the top performers and is open to over a dozen secondary schools in the UK. 
             </p>
             <h3 className="section-subtitle">Digital Overview for Partner Schools</h3>
 
@@ -788,18 +793,19 @@ useEffect(() => {
               <article className="challenge-card mission-card">
                 <h3 className="section-subtitle">Mission</h3>
                 <p>
-                  The Eton College Investment Challenge aims to provide a rigorous, professionally structured introduction to financial markets for students across Eton and participating partner schools. The competition mirrors real-world investment practice by requiring teams to:
+                  We aim to provide a professionally structured introduction to public investing for students across UK secondary schools. 
+                  The competition mirrors real-world investment practice by requiring teams to: 
                 </p>
                 <ul className="challenge-bullets">
                   <li>Develop and submit an investment strategy</li>
-                  <li>Implement it over a multi-month period</li>
+                  <li>Implement it over a (limited) long-term period</li>
                   <li>Evaluate performance, articulate lessons learned, and present their strategy to a professional judging panel</li>
                 </ul>
                 <p>
-                  The challenge cultivates disciplined analysis, thoughtful risk-management, and evidence-based decision-making. Through strategy submissions, performance tracking, and a final presentation round, students build the analytical, quantitative, and communication skills expected in modern investment roles.
+                  The competition cultivates disciplined analysis, risk management, and careful decision-making with real consequences. Through strategy submissions, performance tracking, and a final presentation round, students build the analytical, quantitative, and communication skills expected in modern investment roles. 
                 </p>
                 <p>
-                  Our broader objective is to help form informed, reflective, and responsible young investors who can engage with financial markets and economic issues with clarity and sound judgement.
+                  Our broader objective is to help form responsible young investors who can engage with financial markets and economic issues with clarity and sound judgment. 
                 </p>
               </article>
 
@@ -810,10 +816,9 @@ useEffect(() => {
                     <div className="challenge-step-title">Registration</div>
                     <ul>
                       <li>Teams of 2–4 students submit:</li>
-                      <li>A Google Form registration</li>
-                      <li>A 1–2 page investment strategy summary</li>
+                      <li>A Google Form registration including a 1–2 page investment strategy summary</li>
                       <li>A selection of up to three equities, diversified by sector</li>
-                      <li>The judging panel and student committee will jointly select 100 teams to enter the live competition.</li>
+                      <li>The judging panel and student committee will jointly select 50 teams to enter the live competition.</li>
                     </ul>
                   </li>
                   <li className="challenge-step">
@@ -831,15 +836,15 @@ useEffect(() => {
                   <li className="challenge-step">
                     <div className="challenge-step-title">Strategy Adjustments During the Competition</div>
                     <ul>
-                      <li>Teams may request portfolio changes during the competition by submitting a short written explanation. These will be reviewed within a few days by the student committee.</li>
+                      <li>Teams may request portfolio changes during the competition by submitting a short written explanation. The student committee will review these within a few days. </li>
                       <li>Note: the quality, not the frequency, of adjustments matters.</li>
                     </ul>
                   </li>
                   <li className="challenge-step">
                     <div className="challenge-step-title">Final Presentations</div>
                     <ul>
-                      <li>After the trading period, all 100 portfolios will be reviewed. Judges and student committee members will select the top 25–30 teams.</li>
-                      <li>These teams will deliver a 5-minute presentation at Eton College (expected venue: Jafar Hall or School Hall). Presentations cover:</li>
+                      <li>After the trading period, all 50 portfolios will be reviewed. Judges and student committee members will select the top 15–20 teams.</li>
+                      <li>These teams will deliver a 5-minute presentation at Eton College (expected venue: Jafar Hall). Presentations cover:</li>
                       <li>Their original thesis</li>
                       <li>Portfolio evolution</li>
                       <li>Performance drivers</li>
@@ -856,7 +861,7 @@ useEffect(() => {
               <article className="card">
                 <h4 className="card-title">Anne-Christine Farstad — Global Equity Portfolio Manager, MFS Investment Management</h4>
                 <p className="card-body">
-                  Anne-Christine Farstad is a senior portfolio manager at MFS, responsible for final buy/sell decisions, risk management, and portfolio construction within their contrarian equity strategies. She joined MFS in 2005 and is recognised as one of the leading female portfolio managers in the UK. Her value-investing discipline and long-term analytical approach provide deep insight for student strategies.
+                  Anne-Christine Farstad is a senior portfolio manager at MFS, responsible for final buy/sell decisions, risk management, and portfolio construction within their contrarian equity strategies. She joined MFS in 2005 and is recognised as one of the UK's leading female portfolio managers. Her value-investing discipline and long-term analytical approach provide deep insight for student strategies.
                 </p>
               </article>
               <article className="card">
@@ -866,7 +871,7 @@ useEffect(() => {
                 </p>
               </article>
               <article className="card">
-                <h4 className="card-title">Matthew Wood (or James Roycroft) — Lancaster Investment Management</h4>
+                <h4 className="card-title">Matthew Wood — Lancaster Investment Management</h4>
                 <p className="card-body">
                   Matthew Wood has experience in fund monitoring, operations, and risk-control processes within boutique investment environments. His operational perspective ensures that student strategies are judged not only on profitability and thesis quality but also on real-world implementability.
                 </p>
@@ -875,15 +880,17 @@ useEffect(() => {
 
             <h3 className="section-subtitle">Awards — The Gundlach Investment Prize</h3>
             <p>Thanks to the generosity of former Etonian Henry Gundlach (Georgetown University McDonough School of Business), the prize fund for 2026 is substantial.</p>
-            <p>Proposed awards:</p>
+            <p>The Gundlach Prizes are awarded for 50% strategy and 50% performance. 
+              The Parsons Prize is an additional award for the highest-valued portfolio over the three months</p>
             <ul>
-              <li>1st Place: £2,000 portfolio</li>
-              <li>2nd Place: £1,000 portfolio</li>
-              <li>3rd Place: £500 portfolio</li>
-              <li>Additional Prize: Highest absolute-return portfolio</li>
+              <li>The Gundlach Gold Prize: ~£1000</li>
+              <li>The Gundlach Silver Prize: ~£500</li>
+              <li>The Gundlach Bronze Prize: ~£250</li>
+              <li>The Parsons Prize: ~£250</li>
             </ul>
             <p>Prize distribution among team members will be finalised closer to the date.</p>
-            <p>The prize will be formally titled: The Gundlach Investment Prize</p>
+            <p><i>Please note: the prizes listed below are ballpark estimates, and Henry Gundlach has agreed upon the values. 
+              The prize committee has yet to receive approval from the school board; hence, we cannot provide our full confirmation of these prizes.</i></p>
           </motion.section>
         )}
 
