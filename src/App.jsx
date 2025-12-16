@@ -717,7 +717,7 @@ useEffect(() => {
         {page === 'signup' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
             <h2 className="section-title">Challenge Signup</h2>
-            <p className="section-text">Thank you for taking the time to sign up for this year’s Investment Prize under the ECHCIC. Please start by reading the documents below on how to fill out your application:</p>
+            <p className="section-text" style={{ fontSize: '1.25em' }}>Thank you for taking the time to sign up for this year’s Investment Prize under the ECHCIC. Please start by reading the documents below on how to fill out your application:</p>
             <nav className="tabs" role="tablist" aria-label="Challenge documents">
               {challengeDocs.map(d => (
                 <button
@@ -738,7 +738,7 @@ useEffect(() => {
                 return (
                   <article className="card">
                     <h3 className="card-title">{active.label}</h3>
-                    <p className="card-body">{active.blurb}</p>
+                    <p className="card-body" style={{ fontSize: '1.2em' }}>{active.blurb}</p>
                     <div style={{ marginTop: '12px' }}>
                       <iframe title={active.label} src={docUrl} style={{ width: '100%', height: '600px', border: '1px solid var(--border)', borderRadius: '12px' }} />
                     </div>
