@@ -24,9 +24,9 @@ function App() {
   const [portfolioPassword, setPortfolioPassword] = useState('')
   const [docTab, setDocTab] = useState('template')
   const challengeDocs = [
-    { key: 'prize', label: 'Prize Guide', file: 'Investment Prize Guide.pdf', blurb: 'This guide outlines awards criteria and prize distribution for the challenge.' },
-    { key: 'template', label: 'Input Template', file: 'Input Template.pdf', blurb: <>Once you are clear on the objective of this initial investment strategy, please fill out the template below and submit <a href="https://bit.ly/ECHCIC" target="_blank" rel="noopener noreferrer">this form</a> before the 10th January 2025.</> },
-    { key: 'exemplar', label: 'Exemplar Input', file: 'Exemplar Input.pdf', blurb: 'Here is an exemplar strategy which three students from Holyport College created: ' }
+    { key: 'prize', label: '1. Guide', file: 'Guide.pdf', blurb: <>This guide outlines awards criteria and prize distribution for the challenge.</> },
+    { key: 'template', label: '2. Strategy Template', file: 'Strategy Template.pdf', blurb: <>Once you are clear on the objective of this initial investment strategy, please fill out the template below and submit <a href="https://bit.ly/ECHCIC" target="_blank" rel="noopener noreferrer">this form</a> before the 10th January 2025.</> },
+    { key: 'exemplar', label: '3. Exemplar Strategy', file: 'Exemplar Strategy.pdf', blurb: <>Here is an exemplar strategy which three students from Holyport College created: </> }
   ]
 
   useEffect(() => {
@@ -677,7 +677,7 @@ useEffect(() => {
           <NavButton label="News" target="news" />
           <NavButton label="Portfolio" target="portfolio" />
           <NavButton label="Stock Reports" target="reports" />
-          <NavButton label="Investment Challenge" target="challenge" />
+          <NavButton label="Investment Award" target="challenge" />
           <NavButton label="Challenge Signup" target="signup" />
           <button className="admin-trigger" onClick={() => setAdminOpen(true)}>Admin</button>
         </nav>
@@ -716,7 +716,7 @@ useEffect(() => {
 
         {page === 'signup' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
-            <h2 className="section-title">Challenge Signup</h2>
+            <h2 className="section-title">Signup</h2>
             <p className="section-text" style={{ fontSize: '1.25em' }}>Thank you for taking the time to sign up for this year’s Investment Prize under the ECHCIC. Please start by reading the documents below on how to fill out your application:</p>
             <nav className="tabs" role="tablist" aria-label="Challenge documents">
               {challengeDocs.map(d => (
@@ -730,6 +730,36 @@ useEffect(() => {
                   {d.label}
                 </button>
               ))}
+              {(() => {
+                const idx = challengeDocs.findIndex(d => d.key === docTab)
+                if (idx !== -1 && idx < challengeDocs.length - 1) {
+                  return (
+                    <button
+                      className="tab-btn next-btn"
+                      onClick={() => setDocTab(challengeDocs[idx + 1].key)}
+                      style={{
+                        marginLeft: 'auto',
+                        color: 'var(--accent)',
+                        borderBottom: 'none',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        background: 'rgba(var(--accent-rgb, 0,123,255),0.08)',
+                        transition: 'background .2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(var(--accent-rgb, 0,123,255),0.16)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(var(--accent-rgb, 0,123,255),0.08)'}
+                      aria-label="Next document"
+                    >
+                      Next <span style={{ fontSize: '1.5em', lineHeight: 1, fontWeight: 900 }}>→</span>
+                    </button>
+                  )
+                }
+                return null
+              })()}
             </nav>
             <div className="tab-content">
               {(() => {
@@ -778,7 +808,7 @@ useEffect(() => {
             <h3 className="section-subtitle">Introduction</h3>
 
             <p>
-              The ECHCIC Investment Challenge offers students the chance to showcase their financial literacy and investment skills in a 
+              The ECHCIC Investment Award offers students the chance to showcase their financial literacy and investment skills in a 
               simulated market environment. Teams will design and execute 3-month strategies while discovering how complex financial markets work, 
               and why disciplined risk management matters. 
             </p>
