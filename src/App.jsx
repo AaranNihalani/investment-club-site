@@ -386,9 +386,10 @@ useEffect(() => {
     const formEl = e.currentTarget
     const t = formEl.elements.namedItem('newsTitle')?.value?.trim()
     const d = formEl.elements.namedItem('newsDate')?.value?.trim()
+    const i = formEl.elements.namedItem('newsIndustry')?.value?.trim()
     const b = formEl.elements.namedItem('newsBody')?.value?.trim()
     if (!t || !b) return
-    const item = { title: t, date: d || '', body: b }
+    const item = { title: t, date: d || '', industry: i || 'General', body: b }
     const prev = news
     const next = [item, ...news]
     setNews(next)
@@ -782,15 +783,34 @@ useEffect(() => {
         {page === 'news' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
             <h2 className="section-title">News</h2>
-            <div className="cards">
-              {news.map((n, i) => (
-                <article className="card" key={i}>
-                  <h3 className="card-title">{n.title}</h3>
-                  <p className="card-meta">{n.date}</p>
-                  <p className="card-body">{n.body}</p>
-                </article>
-              ))}
-            </div>
+            {(() => {
+              const grouped = news.reduce((acc, n) => {
+                const ind = n.industry || 'General'
+                if (!acc[ind]) acc[ind] = []
+                acc[ind].push(n)
+                return acc
+              }, {})
+              const industries = Object.keys(grouped).sort()
+              return (
+                <div className="industry-groups">
+                  {industries.length === 0 && <p className="muted">No news available.</p>}
+                  {industries.map(ind => (
+                    <div key={ind} className="industry-group" style={{ marginBottom: '2rem' }}>
+                      <h3 className="section-subtitle" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>{ind}</h3>
+                      <div className="cards">
+                        {grouped[ind].map((n, i) => (
+                          <article className="card" key={`${ind}-${i}`}>
+                            <h3 className="card-title">{n.title}</h3>
+                            <p className="card-meta">{n.date}</p>
+                            <p className="card-body">{n.body}</p>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
           </motion.section>
         )}
 
@@ -1095,6 +1115,21 @@ useEffect(() => {
                           <input id="newsDate" name="newsDate" type="text" placeholder="e.g., October 2025" />
                         </div>
                         <div className="form-row">
+                          <label htmlFor="newsIndustry">Industry</label>
+                          <select id="newsIndustry" name="newsIndustry" required>
+                            <option value="">Select...</option>
+                            <option value="Technology">Technology</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Healthcare">Healthcare</option>
+                            <option value="Energy">Energy</option>
+                            <option value="Consumer Staples">Consumer Staples</option>
+                            <option value="Industrials">Industrials</option>
+                            <option value="Real Estate">Real Estate</option>
+                            <option value="Utilities">Utilities</option>
+                            <option value="General">General</option>
+                          </select>
+                        </div>
+                        <div className="form-row">
                           <label htmlFor="newsBody">Body</label>
                           <textarea id="newsBody" name="newsBody" rows="3" required />
                         </div>
@@ -1105,7 +1140,7 @@ useEffect(() => {
                       <ul className="report-list" style={{ marginTop: '12px' }}>
                         {news.map((item, i) => (
                           <li key={i} className="report-item">
-                            <span><strong>{item.title}</strong> — <span className="muted">{item.date}</span></span>
+                            <span><strong>{item.title}</strong> — <span className="muted">{item.industry || 'General'}</span> — <span className="muted">{item.date}</span></span>
                             <div className="actions">
                               <button className="secondary-btn" onClick={() => removeNews(i)}>Remove</button>
                             </div>

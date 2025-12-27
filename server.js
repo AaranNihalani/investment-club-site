@@ -38,7 +38,13 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }))
 // Rate limit API
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false })
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => (req.originalUrl || '').startsWith('/api/health')
+})
 app.use('/api', apiLimiter)
 
 // Persistent storage paths
@@ -466,6 +472,7 @@ app.put('/api/news', (req, res) => {
   const cleaned = input.map(n => ({
     title: String(n.title || '').trim().slice(0, 200),
     date: String(n.date || '').trim().slice(0, 100),
+    industry: String(n.industry || '').trim().slice(0, 50),
     body: String(n.body || '').trim().slice(0, 2000),
   })).filter(n => n.title && n.body)
   try {

@@ -2,26 +2,61 @@
   {
     "title": "OpenAI Announces GPT-5 Turbo for Enterprise Use",
     "date": "October 2025",
+    "industry": "Technology",
     "body": "OpenAI has launched GPT-5 Turbo, a faster and more efficient variant of its flagship language model. The new version promises improved reasoning, longer context handling, and reduced latency — making it ideal for enterprise-level automation and data analysis."
   },
   {
     "title": "Apple Introduces M4 Pro Chip with Major AI Boost",
     "date": "October 2025",
+    "industry": "Technology",
     "body": "Apple unveiled its M4 Pro chip, featuring a redesigned Neural Engine capable of over 40 trillion operations per second. The chip powers new MacBook Pro models, emphasizing real-time AI processing and energy efficiency."
   },
   {
     "title": "Google Expands Gemini Integration Across Workspace",
     "date": "October 2025",
+    "industry": "Technology",
     "body": "Google has expanded its Gemini AI assistant across Gmail, Docs, and Sheets. The rollout includes advanced summarization, voice command features, and context-aware email drafting for Workspace users."
   },
   {
     "title": "Meta Unveils Horizon OS for Mixed Reality Devices",
     "date": "October 2025",
+    "industry": "Technology",
     "body": "Meta introduced Horizon OS, a new mixed-reality operating system designed to unify its Quest devices with partner hardware. The system focuses on open development and integration with productivity apps and AI-powered collaboration tools."
   },
   {
     "title": "NVIDIA Launches RTX 5090 with Record-Breaking Performance",
     "date": "October 2025",
+    "industry": "Technology",
     "body": "NVIDIA released the RTX 5090 GPU, setting new performance records for gaming and AI workloads. Built on the Blackwell architecture, the card features improved ray-tracing capabilities and AI-assisted rendering technology."
+  },
+  {
+    "title": "Global Markets React to Central Bank Policy Shift",
+    "date": "November 2025",
+    "industry": "Finance",
+    "body": "Major global indices saw increased volatility this week as the Federal Reserve and ECB signaled a coordinated shift in monetary policy. Investors are closely monitoring inflation data and labor market reports for further direction."
+  },
+  {
+    "title": "FDA Approves Breakthrough Alzheimer's Treatment",
+    "date": "November 2025",
+    "industry": "Healthcare",
+    "body": "The FDA has granted accelerated approval for a new monoclonal antibody treatment for early-stage Alzheimer's disease. Clinical trials demonstrated a 35% reduction in cognitive decline, marking a significant milestone in neurodegenerative care."
+  },
+  {
+    "title": "Oil Prices Stabilize Amidst Production Cuts",
+    "date": "November 2025",
+    "industry": "Energy",
+    "body": "Crude oil prices have stabilized near $85 per barrel following the latest OPEC+ agreement to extend voluntary production cuts. Analysts predict moderate upward pressure on energy costs heading into the winter season."
+  },
+  {
+    "title": "Major Retailers Report Strong Q3 Earnings",
+    "date": "November 2025",
+    "industry": "Consumer Staples",
+    "body": "Leading consumer staples companies reported better-than-expected Q3 earnings, driven by resilient demand for essential goods. Despite inflationary pressures, household spending on food and hygiene products remains robust."
+  },
+  {
+    "title": "Commercial Real Estate Sector Shows Signs of Recovery",
+    "date": "November 2025",
+    "industry": "Real Estate",
+    "body": "After a prolonged period of adjustment, the commercial real estate market is showing early signs of stabilization. Vacancy rates in prime office locations have plateaued, while demand for industrial and logistics spaces continues to grow."
   }
 ]
