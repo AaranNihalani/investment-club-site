@@ -28,6 +28,41 @@ function App() {
     { key: 'template', label: '2. Strategy Template', file: 'Strategy Template.pdf', blurb: <>Once you are clear on the objective of this initial investment strategy, please fill out the template below and submit <a href="https://bit.ly/ECHCIC" target="_blank" rel="noopener noreferrer">this form</a> before the 10th January 2025.</> },
     { key: 'exemplar', label: '3. Exemplar Strategy', file: 'Exemplar Strategy.pdf', blurb: <>Here is an exemplar strategy which three students from Holyport College created: </> }
   ]
+  const team = {
+    ceo: [
+      { name: 'Julian Gimenez', role: 'CEO (Chairman)', email: 'Gimenez.J@etoncollege.org.uk' },
+    ],
+    coo: [
+      { name: 'William Parsons', role: 'COO', email: 'Parsons.W@etoncollege.org.uk' },
+    ],
+    cfo: [
+      { name: 'Alex Wong', role: 'CFO', email: 'Wong.A@etoncollege.org.uk' },
+    ],
+    outreach: [
+      { name: 'Andrew Zhang', role: 'Director of Outreach', email: 'Zhang.A@etoncollege.org.uk' },
+    ],
+    board: [
+      { name: 'Logan Moore (Holyport)', sector: 'Financials' },
+      { name: 'Monique Vasileva (Holyport)', sector: 'Consumer Goods' },
+      { name: 'Giacomo Rubino', sector: 'Financials' },
+      { name: 'Ari Mahbubani', sector: 'Consumer Goods' },
+      { name: 'Dhyan Patel', sector: 'Tech' },
+      { name: 'Louis Zegrean', sector: 'Pharma' },
+      { name: 'Geoffroy Molhant-Proost', sector: 'Commodities' },
+      { name: 'Zachary Heslop', sector: 'Defence' },
+      { name: 'Jonny Leslie', sector: 'Energy' },
+    ],
+    advisors: [
+      { name: 'Stuart Leigh-Davies' },
+      { name: 'Winston Ginsberg' },
+    ],
+  }
+  const getLastName = (name) => {
+    const base = String(name || '').replace(/\([^)]*\)/g, '').trim()
+    const parts = base.split(/\s+/)
+    return parts[parts.length - 1] || base
+  }
+  const sortByLast = (arr) => [...(arr || [])].sort((a, b) => getLastName(a.name).localeCompare(getLastName(b.name)))
 
   useEffect(() => {
     const onHash = () => {
@@ -712,6 +747,45 @@ useEffect(() => {
             <p className="section-text">
               The Club is entirely student-run. A 15-member Internal Board, comprising Executive Officers and Sector Leaders from both Eton and Holyport, holds sole voting power on all trades. They are supported by Research Analysts who conduct in-depth analysis and present stock recommendations. This entire process is guided, but not directed, by an external Advisory Board of finance professionals who provide feedback and oversight, ensuring a rigorous and educational experience for all members.
             </p>
+            <section id="the-team" className="section" style={{ paddingTop: 20 }}>
+              <h2 className="section-title">The Team</h2>
+              <div className="team-group">
+                <h3 className="section-subtitle">Leadership</h3>
+                <ul className="report-list">
+                  {sortByLast([...(team.ceo||[]), ...(team.coo||[]), ...(team.cfo||[]), ...(team.outreach||[])]).map((m, i) => (
+                    <li key={`ldr-${i}`} className="report-item">
+                      <span>
+                        <strong>{m.name}</strong>{m.role && <> — <span className="muted">{m.role}</span></>}{m.email && <> — <a className="link" href={`mailto:${m.email}`}>{m.email}</a></>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="team-group">
+                <h3 className="section-subtitle">Board</h3>
+                <ul className="report-list">
+                  {sortByLast(team.board).map((m, i) => (
+                    <li key={`bd-${i}`} className="report-item">
+                      <span>
+                        <strong>{m.name}</strong> — <span className="muted">{m.sector}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="team-group">
+                <h3 className="section-subtitle">Advisors</h3>
+                <ul className="report-list">
+                  {sortByLast(team.advisors).map((m, i) => (
+                    <li key={`adv-${i}`} className="report-item">
+                      <span>
+                        <strong>{m.name}</strong> — <span className="muted">Advisor</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
           </motion.section>
         )}
 
