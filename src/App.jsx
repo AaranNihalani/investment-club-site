@@ -890,7 +890,7 @@ useEffect(() => {
 
         {page === 'challenge' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
-            <h2 className="section-title">The Gundlach Investment Challenge 2026</h2>
+            <h2 className="section-title">The ECHCIC Investment Award 2026</h2>
             <p className="section-text">
               See the{' '}
               <a className="link" href="#signup" style={{ fontSize: '1.1em', fontWeight: 600 }}>
@@ -908,7 +908,7 @@ useEffect(() => {
             </p>
 
             <p>
-              In its second year, the competition awards roughly £2,000 in prizes 
+              In its second year, the competition awards roughly £1,000 in prizes 
               to the top performers and is open to over a dozen secondary schools in the UK. 
             </p>
             <h3 className="section-subtitle">Digital Overview for Partner Schools</h3>
@@ -949,7 +949,7 @@ useEffect(() => {
                     <div className="challenge-step-title">Platform & Portfolio Tracking</div>
                     <ul>
                       <li>All selected teams receive a paper portfolio mirroring their submitted strategy.</li>
-                      <li>Members of the student commitee oversee the digital platform infrastructure, ensuring:</li>
+                      <li>Members of the student committee oversee the digital platform infrastructure, ensuring:</li>
                       <li>Access to portfolio dashboards</li>
                       <li>Real-time tracking</li>
                       <li>Comparative performance displays</li>
@@ -962,6 +962,7 @@ useEffect(() => {
                     <ul>
                       <li>Teams may request portfolio changes during the competition by submitting a short written explanation. The student committee will review these within a few days. </li>
                       <li>Note: the quality, not the frequency, of adjustments matters.</li>
+                      <li>We may also introduce sudden shifts, which candidates must adapt to over the three months. Hence, candidates must be alert via email.</li>
                     </ul>
                   </li>
                   <li className="challenge-step">
@@ -1003,18 +1004,9 @@ useEffect(() => {
             </div>
 
             <h3 className="section-subtitle">Awards — The Gundlach Investment Prize</h3>
-            <p>Thanks to the generosity of former Etonian Henry Gundlach (Georgetown University McDonough School of Business), the prize fund for 2026 is substantial.</p>
-            <p>The Gundlach Prizes are awarded for 50% strategy and 50% performance. 
-              The Parsons Prize is an additional award for the highest-valued portfolio over the three months</p>
-            <ul>
-              <li>The Gundlach Gold Prize: ~£1000</li>
-              <li>The Gundlach Silver Prize: ~£500</li>
-              <li>The Gundlach Bronze Prize: ~£250</li>
-              <li>The Parsons Prize: ~£250</li>
-            </ul>
-            <p>Prize distribution among team members will be finalised closer to the date.</p>
-            <p><i>Please note: the prizes listed below are ballpark estimates, and Henry Gundlach has agreed upon the values. 
-              The prize committee has yet to receive approval from the school board; hence, we cannot provide our full confirmation of these prizes.</i></p>
+            <p>Thanks to the generosity of former Etonian Henry Gundlach (Georgetown University McDonough School of Business), the prize fund for 2026 is substantial (£1000 to be given out).</p>
+            <p>The Gundlach Prizes are awarded for 50% strategy and 50% performance.</p>
+            <p>Prize distribution will be finalised closer to the date.</p>
           </motion.section>
         )}
 
