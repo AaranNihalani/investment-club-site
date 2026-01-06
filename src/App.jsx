@@ -25,7 +25,7 @@ function App() {
   const [docTab, setDocTab] = useState('template')
   const challengeDocs = [
     { key: 'prize', label: '1. Guide', file: 'Guide.pdf', blurb: <>This guide outlines awards criteria and prize distribution for the challenge.</> },
-    { key: 'template', label: '2. Strategy Template', file: 'Strategy Template.pdf', blurb: <>Once you are clear on the objective of this initial investment strategy, please fill out the template below and submit <a href="https://bit.ly/ECHCIC" target="_blank" rel="noopener noreferrer">this form</a> before the 10th January 2025.</> },
+    { key: 'template', label: '2. Strategy Template', file: 'Strategy Template.pdf', blurb: <>Once you are clear on the objective of this initial investment strategy, please fill out the template below and submit <a href="https://bit.ly/ECHCIC" target="_blank" rel="noopener noreferrer">this form</a> before the 12th January 2025.</> },
     { key: 'exemplar', label: '3. Exemplar Strategy', file: 'Exemplar Strategy.pdf', blurb: <>Here is an exemplar strategy which three students from Holyport College created: </> }
   ]
   const team = {
