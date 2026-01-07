@@ -811,6 +811,10 @@ useEffect(() => {
                 const t = Date.parse(String(s || '').trim())
                 return Number.isFinite(t) ? t : null
               }
+              const fmt = (s) => {
+                const t = toTime(s)
+                return t ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'long' }).format(new Date(t)) : String(s || '')
+              }
               const now = Date.now()
               const ti = toTime(milestones.dueInternal)
               const te = toTime(milestones.dueExternal)
@@ -818,14 +822,15 @@ useEffect(() => {
               const tf = toTime(milestones.finals)
               let text = ''
               if ((ti && now <= ti) || (te && now <= te)) {
-                const iText = milestones.dueInternal ? String(milestones.dueInternal) : ''
-                const eText = milestones.dueExternal ? String(milestones.dueExternal) : ''
-                text = `Next Up: Due Date for Strategy Submission — ${iText}${iText && eText ? ', and ' : ''}${eText}`
+                const parts = []
+                if (milestones.dueInternal) parts.push(`Internal: ${fmt(milestones.dueInternal)}`)
+                if (milestones.dueExternal) parts.push(`External: ${fmt(milestones.dueExternal)}`)
+                text = `Next Up: Due Date for Strategy Submission — ${parts.join(' • ')}`
               } else if (th && now <= th) {
-                const hText = String(milestones.holdEnd || '')
+                const hText = fmt(milestones.holdEnd)
                 text = `Next Up: Portfolios being held until — ${hText}`
               } else if (tf) {
-                const fText = String(milestones.finals || '')
+                const fText = fmt(milestones.finals)
                 text = `Next Up: Finals On — ${fText}`
               }
               return text ? <div className="value-display" aria-live="polite">{text}</div> : null
