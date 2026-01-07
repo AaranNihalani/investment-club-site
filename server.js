@@ -504,6 +504,42 @@ app.delete('/api/news/:index', (req, res) => {
   }
 })
 
+// Milestones persistence (JSON file)
+const milestonesPath = path.resolve(DATA_ROOT, 'data', 'milestones.json')
+fs.mkdirSync(path.dirname(milestonesPath), { recursive: true })
+if (!fs.existsSync(milestonesPath)) fs.writeFileSync(milestonesPath, JSON.stringify({ dueInternal: '', dueExternal: '', holdEnd: '', finals: '' }, null, 2))
+function readMilestones() { try { return JSON.parse(fs.readFileSync(milestonesPath, 'utf8')) } catch { return { dueInternal: '', dueExternal: '', holdEnd: '', finals: '' } } }
+function writeMilestones(obj) { fs.writeFileSync(milestonesPath, JSON.stringify(obj, null, 2)) }
+
+// Read milestones (public)
+app.get('/api/milestones', (req, res) => {
+  try {
+    const data = readMilestones()
+    return res.json({ milestones: data })
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to read milestones', error: err.message })
+  }
+})
+
+// Update milestones (admin only)
+app.put('/api/milestones', (req, res) => {
+  const token = req.header('x-admin-token') || ''
+  if (token !== ADMIN_TOKEN) return res.status(401).json({ message: 'Unauthorized: invalid admin token' })
+  const m = req.body?.milestones || {}
+  const cleaned = {
+    dueInternal: String(m.dueInternal || '').trim().slice(0, 100),
+    dueExternal: String(m.dueExternal || '').trim().slice(0, 100),
+    holdEnd: String(m.holdEnd || '').trim().slice(0, 100),
+    finals: String(m.finals || '').trim().slice(0, 100),
+  }
+  try {
+    writeMilestones(cleaned)
+    return res.json({ ok: true })
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to write milestones', error: err.message })
+  }
+})
+
 app.post('/api/holdings/defaults', async (req, res) => {
   const token = req.header('x-admin-token') || ''
   if (token !== ADMIN_TOKEN) return res.status(401).json({ message: 'Unauthorized: invalid admin token' })

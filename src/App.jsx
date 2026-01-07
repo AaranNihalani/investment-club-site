@@ -22,12 +22,26 @@ function App() {
   const [uploadMessage, setUploadMessage] = useState('')
   const [portfolioAuthed, setPortfolioAuthed] = useState(localStorage.getItem('PORTFOLIO_AUTH') === 'true')
   const [portfolioPassword, setPortfolioPassword] = useState('')
-  const [docTab, setDocTab] = useState('template')
+  const [docTab, setDocTab] = useState('prize')
   const challengeDocs = [
     { key: 'prize', label: '1. Guide', file: 'Guide.pdf', blurb: <>This guide outlines awards criteria and prize distribution for the challenge.</> },
-    { key: 'template', label: '2. Strategy Template', file: 'Strategy Template.pdf', blurb: <>Once you are clear on the objective of this initial investment strategy, please fill out the template below and submit <a href="https://bit.ly/ECHCIC" target="_blank" rel="noopener noreferrer">this form</a> before the 12th January 2025.</> },
+    { key: 'template', label: '2. Strategy Template', file: 'Strategy Template.pdf', blurb: <>Once you are clear on the objective of this initial investment strategy, please fill out the template below and submit <a href="https://bit.ly/ECHCIC" target="_blank" rel="noopener noreferrer">this form</a>.</> },
     { key: 'exemplar', label: '3. Exemplar Strategy', file: 'Exemplar Strategy.pdf', blurb: <>Here is an exemplar strategy which three students from Holyport College created: </> }
   ]
+  const [milestones, setMilestones] = useState({ dueInternal: '', dueExternal: '', holdEnd: '', finals: '' })
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/milestones`)
+        const data = await parseJsonResponse(res)
+        if (!cancelled && data && data.milestones) setMilestones(data.milestones)
+      } catch (err) {
+        console.warn('Failed to load milestones', err)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
   const team = {
     ceo: [
       { name: 'Julian Gimenez', role: 'CEO (Chairman)', email: 'Gimenez.J@etoncollege.org.uk' },
@@ -792,6 +806,30 @@ useEffect(() => {
         {page === 'signup' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="section">
             <h2 className="section-title">Signup</h2>
+            {(() => {
+              const toTime = (s) => {
+                const t = Date.parse(String(s || '').trim())
+                return Number.isFinite(t) ? t : null
+              }
+              const now = Date.now()
+              const ti = toTime(milestones.dueInternal)
+              const te = toTime(milestones.dueExternal)
+              const th = toTime(milestones.holdEnd)
+              const tf = toTime(milestones.finals)
+              let text = ''
+              if ((ti && now <= ti) || (te && now <= te)) {
+                const iText = milestones.dueInternal ? String(milestones.dueInternal) : ''
+                const eText = milestones.dueExternal ? String(milestones.dueExternal) : ''
+                text = `Next Up: Due Date for Strategy Submission — ${iText}${iText && eText ? ', and ' : ''}${eText}`
+              } else if (th && now <= th) {
+                const hText = String(milestones.holdEnd || '')
+                text = `Next Up: Portfolios being held until — ${hText}`
+              } else if (tf) {
+                const fText = String(milestones.finals || '')
+                text = `Next Up: Finals On — ${fText}`
+              }
+              return text ? <div className="value-display" aria-live="polite">{text}</div> : null
+            })()}
             <p className="section-text" style={{ fontSize: '1.25em' }}>Thank you for taking the time to sign up for this year’s Investment Prize under the ECHCIC. Please start by reading the documents below on how to fill out your application:</p>
             <nav className="tabs" role="tablist" aria-label="Challenge documents">
               {challengeDocs.map(d => (
@@ -1151,6 +1189,14 @@ useEffect(() => {
                     News
                   </button>
                   <button
+                    className={`tab-btn ${adminTab === 'milestones' ? 'active' : ''}`}
+                    role="tab"
+                    aria-selected={adminTab === 'milestones'}
+                    onClick={() => setAdminTab('milestones')}
+                  >
+                    Milestones
+                  </button>
+                  <button
                     className={`tab-btn ${adminTab === 'portfolio' ? 'active' : ''}`}
                     role="tab"
                     aria-selected={adminTab === 'portfolio'}
@@ -1213,6 +1259,52 @@ useEffect(() => {
                           </li>
                         ))}
                       </ul>
+                    </section>
+                  )}
+                  {adminTab === 'milestones' && (
+                    <section className="admin-section" role="tabpanel" aria-label="Challenge Milestones">
+                      <h4 className="section-subtitle">Challenge Milestones</h4>
+                      <form className="upload-form" onSubmit={async (e) => {
+                        e.preventDefault()
+                        try {
+                          const form = e.currentTarget
+                          const dueInternal = form.dueInternal?.value || ''
+                          const dueExternal = form.dueExternal?.value || ''
+                          const holdEnd = form.holdEnd?.value || ''
+                          const finals = form.finals?.value || ''
+                          const res = await fetch(`${API_BASE}/api/milestones`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'x-admin-token': (adminToken || '').trim() },
+                            body: JSON.stringify({ milestones: { dueInternal, dueExternal, holdEnd, finals } }),
+                          })
+                          const data = await parseJsonResponse(res)
+                          if (!res.ok) throw new Error(data?.message || 'Failed to save milestones')
+                          setMilestones({ dueInternal, dueExternal, holdEnd, finals })
+                          alert('Milestones saved')
+                        } catch (err) {
+                          alert(err?.message || 'Failed to save milestones')
+                        }
+                      }}>
+                        <div className="form-row">
+                          <label htmlFor="dueInternal">Internal Due Date</label>
+                          <input id="dueInternal" name="dueInternal" type="date" defaultValue={milestones.dueInternal} />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="dueExternal">External Due Date</label>
+                          <input id="dueExternal" name="dueExternal" type="date" defaultValue={milestones.dueExternal} />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="holdEnd">Portfolios Held Until</label>
+                          <input id="holdEnd" name="holdEnd" type="date" defaultValue={milestones.holdEnd} />
+                        </div>
+                        <div className="form-row">
+                          <label htmlFor="finals">Finals Date</label>
+                          <input id="finals" name="finals" type="date" defaultValue={milestones.finals} />
+                        </div>
+                        <div className="actions">
+                          <button className="primary-btn" type="submit">Save Milestones</button>
+                        </div>
+                      </form>
                     </section>
                   )}
                   {adminTab === 'portfolio' && (
