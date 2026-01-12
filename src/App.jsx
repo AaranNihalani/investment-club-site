@@ -890,6 +890,11 @@ useEffect(() => {
                     <div style={{ marginTop: '12px' }}>
                       <iframe title={active.label} src={docUrl} style={{ width: '100%', height: '600px', border: '1px solid var(--border)', borderRadius: '12px' }} />
                     </div>
+                    {active.key === 'template' && (
+                      <div className="actions" style={{ marginTop: '12px' }}>
+                        <a className="primary-btn" href={docUrl} download target="_blank" rel="noreferrer">Download Template</a>
+                      </div>
+                    )}
                   </article>
                 )
               })()}
